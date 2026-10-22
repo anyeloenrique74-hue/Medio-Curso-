@@ -1,0 +1,69 @@
+# ABC Software Corp: especificación técnica Spec-First (fase 1)
+
+**Universidad Nacional Agraria de la Selva · Facultad de Ingeniería en Informática y Sistemas**
+**Examen de medio curso de Arquitectura de Software · Grupo "A" · 19 de octubre de 2026**
+**Alumno:** _(completar)_
+
+Esqueleto de especificaciones técnicas para modernizar el software de ABC Software Corp, una mediana empresa mayorista y minorista de abarrotes, y llevarlo a la **facturación electrónica SUNAT en UBL 2.1** con **inventario formal**, **migración trazable del legado** y una **arquitectura MVC preparada para hexagonal y microservicios**, con distribución nativa en **Windows (MSI)** y **Android (APK)**.
+
+> Todos los datos de este repositorio (RUC, razones sociales, direcciones) son **ficticios**. Los XML están firmados con un **certificado de prueba autofirmado**, no válido ante SUNAT.
+
+## Resumen ejecutivo
+
+- **Metodología Spec-First:** primero las reglas (`VAL-*`, `MIG-*`), luego los contratos (JSON Schema 2020-12, OpenAPI 3.1, AsyncAPI 3.0) y al final su validación automática. **No se escribió lógica de negocio.** Solo hay herramientas que verifican que los contratos sean correctos e implementables.
+- **Estudio del `UBL-Invoice-2.1.xsd`:** se usaron los XSD oficiales de OASIS. 21 de 56 datos exigidos por SUNAT son opcionales en el XSD; esa diferencia ("perfil SUNAT") está marcada en la matriz con ▲.
+- **Catálogo 8:** se cubren el Anexo N.° 8 completo (catálogos como datos versionados) y el Catálogo N.° 08 (sistemas de cálculo del ISC, con fórmula, ubicación `cbc:TierRange` y ejemplo firmado).
+- **Arquitectura:** "MVC por fuera, hexágono por dentro". Cada endpoint declara su puerto de entrada (`x-puerto-entrada`) y los eventos tienen contrato propio, de modo que extraer microservicios es cambiar adaptadores.
+- **Evidencia:** 4 XML UBL 2.1 firmados (factura a crédito con bonificación, factura con ISC, boleta con ICBPER y exonerado, nota de crédito) que **validan contra el XSD oficial** y **cuadran al céntimo**.
+
+## Del enunciado a este repositorio
+
+| Enunciado | Dónde se responde |
+|---|---|
+| 1. Descripción del caso: brechas (RUC, impuestos, XML firmado, OSE/SUNAT) | [docs/01-analisis-del-caso.md](docs/01-analisis-del-caso.md) |
+| Normas RS 097-2012, RS 234-2006, masificación, UBL/OASIS, `UBL-Invoice-2.1.xsd` | [docs/02-marco-normativo-y-estandar-ubl.md](docs/02-marco-normativo-y-estandar-ubl.md) |
+| 2. Legado y migración de datos | [docs/09-migracion-del-legado.md](docs/09-migracion-del-legado.md) |
+| 2. Normativa tributaria y **catálogo 8** | [docs/02](docs/02-marco-normativo-y-estandar-ubl.md) (sección 2.5) y [docs/04-reglas-de-negocio-y-validaciones.md](docs/04-reglas-de-negocio-y-validaciones.md) |
+| 2. Arquitectura base y futura (MVC → hexagonal → microservicios) | [docs/06-arquitectura-mvc-hexagonal.md](docs/06-arquitectura-mvc-hexagonal.md) |
+| 2. Distribución multiplataforma (MSI y APK) | [docs/06](docs/06-arquitectura-mvc-hexagonal.md) (sección 6.8) |
+| 3. Descubrimiento de los casos de uso (opiniones de usuarios, Nubefact, DEMO) | [docs/03-casos-de-uso.md](docs/03-casos-de-uso.md) |
+| **4. Entregable: modelo de dominio y contratos (DTOs/Schemas)** | [docs/05-modelo-de-dominio-y-contratos.md](docs/05-modelo-de-dominio-y-contratos.md) + [specs/schemas/](specs/schemas/) |
+| **4. Entregable: diagramas MVC con visión hexagonal** | [docs/06-arquitectura-mvc-hexagonal.md](docs/06-arquitectura-mvc-hexagonal.md) + [diagramas/](diagramas/) |
+| **4. Entregable: endpoints y servicios (contratos API)** | [docs/07-contratos-api.md](docs/07-contratos-api.md) + [specs/openapi/abc-comercial-api.yaml](specs/openapi/abc-comercial-api.yaml) + [specs/asyncapi/](specs/asyncapi/) |
+| **4. Entregable: matriz de trazabilidad SUNAT ↔ UBL** | [docs/08-matriz-trazabilidad-normativa.md](docs/08-matriz-trazabilidad-normativa.md) + [specs/trazabilidad/matriz-trazabilidad.xlsx](specs/trazabilidad/matriz-trazabilidad.xlsx) |
+| Informe consolidado para entregar | [entregable/](entregable/) (Word y PDF) |
+
+## Estructura
+
+```text
+docs/                         10 capítulos de la especificación (Markdown)
+specs/
+  schemas/                    contratos de datos: JSON Schema 2020-12 (11 archivos)
+  openapi/                    contrato REST: OpenAPI 3.1 (43 rutas, 50 operaciones)
+  asyncapi/                   contrato de eventos: AsyncAPI 3.0
+  ejemplos/json/              solicitudes y respuestas válidas + invalidos/ (contraejemplos)
+  ubl/plantillas/             XML UBL 2.1 sin firma (fuente)
+  ubl/ejemplos/               XML UBL 2.1 firmados (XMLDSig) y validados contra el XSD
+  ubl/xsd-oasis-ubl-2.1/      XSD oficiales de OASIS (sin modificar)
+  trazabilidad/               matriz (YAML fuente → XLSX, CSV y tablas de docs/08)
+  migracion/                  reglas declarativas de mapeo del legado
+diagramas/fuentes/            15 diagramas Mermaid (.mmd) → svg/ (Markdown) y png/ (informe)
+tools/                        validación y generación (no es lógica de negocio)
+entregable/                   informe consolidado .docx y .pdf
+```
+
+## Cómo verificar
+
+Se necesita Python 3.11 o superior; para firmar, JDK 11 o superior; para los diagramas, Node.js y Chrome o Edge.
+
+```bash
+pip install -r tools/requirements.txt
+python tools/validar_specs.py            # esquemas, ejemplos, XSD OASIS, firma, cuadres, OpenAPI y AsyncAPI
+python tools/validar_specs.py --firmar   # además re-firma las plantillas UBL con un certificado de prueba
+python tools/xsd_cardinalidad.py Invoice # secuencia raíz de UBL-Invoice-2.1.xsd con cardinalidades
+python tools/generar_matrices.py         # regenera la matriz (XLSX, CSV, docs/08) y la tabla de endpoints (docs/07)
+python tools/renderizar_diagramas.py     # regenera diagramas/svg y diagramas/png
+python tools/construir_informe.py        # regenera entregable/*.docx y *.pdf (requiere Quarto/Pandoc y MS Word)
+```
+
+Resultado esperado de la validación: `Resumen: 40 OK, 0 con error` (44 con `--firmar`).
