@@ -16,3 +16,7 @@ __pycache__/
 build/
 ~$*.docx
 .quarto/
+
+# Fase 2: compilación de Maven (incluye las clases generadas desde el XSD)
+target/
+*.class
