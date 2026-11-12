@@ -228,8 +228,16 @@ class ComprobanteApiTest {
         void laPaginaSeSirveYUsaLaApi() throws Exception {
             mvc.perform(get("/index.html"))
                     .andExpect(status().isOk())
-                    .andExpect(content().string(org.hamcrest.Matchers.containsString("Emitir y generar XML")))
+                    .andExpect(content().string(org.hamcrest.Matchers.containsString("Generar XML")))
                     .andExpect(content().string(org.hamcrest.Matchers.containsString("/api/v1/comprobantes")));
+        }
+
+        @Test
+        void losCatalogosDelFormularioSalenDelContrato() throws Exception {
+            mvc.perform(get("/contratos/catalogos-sunat.schema.json"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$['$defs'].Cat03UnidadMedida.oneOf[0].const").value("NIU"))
+                    .andExpect(jsonPath("$['$defs'].Cat07TipoAfectacionIgv.oneOf[0].const").value("10"));
         }
 
         @ParameterizedTest

@@ -70,7 +70,7 @@ a módulos o integraciones de fases posteriores (envío a OSE/SUNAT, notas, inve
 
 ## 11.5 Evidencia: pruebas
 
-`cd servidor && ./mvnw verify` → **129 pruebas, 0 fallas; cobertura de líneas 95,6 %** (mínimo exigido en el build: 90 %).
+`cd servidor && ./mvnw verify` → **130 pruebas, 0 fallas; cobertura de líneas 95,9 %** (mínimo exigido en el build: 90 %).
 
 | Prueba | N.° | Qué demuestra |
 |---|---:|---|
@@ -80,7 +80,7 @@ a módulos o integraciones de fases posteriores (envío a OSE/SUNAT, notas, inve
 | `MotorTributarioTest` | 19 | Tabla 4.5, TC-07 y TC-09, ISC de los sistemas 01, 02 y 03, precio con IGV, gratuitas, redondeo HALF_UP por ítem y tasa como parámetro. |
 | `ValidadorNormativoTest` | 24 | TC-02, 03, 04, 05, 06, 08 y 10, y las reglas de la capa 2. Todas las violaciones se informan juntas. |
 | `MontoEnLetrasTest` | 23 | Leyenda 1000, incluidas las tres de los ejemplos. |
-| `ComprobanteApiTest` | 22 | TC-01 y TC-12 (idempotencia); los 7 contraejemplos `invalidos/i01..i07` → 400 en el campo esperado; TC-03 y TC-04 → 422; VAL-ALC-01; **la respuesta cumple `comprobante.response.schema.json`**; consulta y descarga del XML firmado; la vista web y sus ejemplos se sirven. |
+| `ComprobanteApiTest` | 23 | TC-01 y TC-12 (idempotencia); los 7 contraejemplos `invalidos/i01..i07` → 400 en el campo esperado; TC-03 y TC-04 → 422; VAL-ALC-01; **la respuesta cumple `comprobante.response.schema.json`**; consulta y descarga del XML firmado; la vista web, sus ejemplos y los catálogos del contrato se sirven. |
 | `ReglasDeArquitecturaTest` | 5 | Reglas de dependencia del § 6.5 y módulos sin ciclos. |
 
 **Mutaciones manuales.** Si el IGV se calcula sin el ISC en la base (se viola VAL-TRB-05), fallan 6 pruebas de tres
@@ -99,19 +99,33 @@ curl -X POST http://localhost:8080/api/v1/comprobantes \
 curl http://localhost:8080/api/v1/comprobantes/{id}/xml -o factura.xml
 ```
 
-### Vista web
+### Vista web: formulario de emisión
 
-Con el servidor en marcha, **<http://localhost:8080/>** abre una página para generar los XML sin usar `curl`:
+Con el servidor en marcha, **<http://localhost:8080/>** abre una página donde se **digitan los datos del comprobante**
+y se genera su XML UBL 2.1:
 
-1. Se elige un ejemplo de `specs/ejemplos/json` (válidos, fuera de alcance o inválidos) y se puede editar el JSON.
-2. **Emitir y generar XML** llama a `POST /api/v1/comprobantes`. La página muestra el estado de las tres capas de
-   validación (contrato, normas y documento), el resumen con ítems, totales y leyendas, y el **XML UBL 2.1 firmado**,
-   que se puede descargar con su nombre SUNAT (`RUC-tipo-serie-número.xml`).
-3. Si la solicitud incumple una norma, la página lista cada regla `VAL-*` que falló, con el campo y el mensaje.
+1. **Comprobante:** factura o boleta, serie, fecha y hora, tipo de operación y moneda (con tipo de cambio si no es PEN).
+2. **Cliente:** tipo y número de documento, razón social, dirección, ubigeo y correo. Un botón llena el cliente sin
+   identificar de las boletas.
+3. **Ítems:** descripción, unidad de medida, cantidad, afectación del IGV y el importe unitario, con o sin IGV. En las
+   operaciones gratuitas el importe pasa a ser el valor referencial. Cada ítem admite ISC (los tres sistemas del
+   Catálogo N.° 08) e ICBPER.
+4. **Forma de pago:** contado o crédito con cuotas. Un botón reparte el importe total en cuotas mensuales.
+5. **Documentos relacionados:** orden de compra y guía de remisión.
 
-La vista es un **cliente más de la API** (`src/main/resources/static/index.html`): no tiene lógica de negocio ni
-copia de los ejemplos, que el build empaqueta desde `specs/`. Todo el cálculo, la generación desde el XSD, la firma
-y las validaciones ocurren en el servidor.
+Mientras se escribe, la página pide `POST /comprobantes/calculos` y muestra los tributos y el importe total que calcula
+el servidor. **Generar XML** llama a `POST /comprobantes` y muestra el estado de las tres capas de validación, el
+resumen y el **XML firmado**, que se descarga con su nombre SUNAT (`RUC-tipo-serie-número.xml`). Si la solicitud
+incumple una norma, cada regla `VAL-*` se muestra **en el campo que la incumple**, marcado en rojo.
+
+Los catálogos de las listas (unidades, monedas, documentos de identidad, afectación del IGV, sistemas del ISC y
+tipos de operación) **se leen de `specs/schemas/catalogos-sunat.schema.json`**, el contrato de la fase 1. Los códigos
+que esta fase no implementa (VAL-ALC-01) aparecen deshabilitados. El modo **JSON (avanzado)** permite editar la
+solicitud directamente o cargar los ejemplos inválidos de `specs/ejemplos/json`.
+
+La vista es un **cliente más de la API** (`src/main/resources/static/index.html`). Solo arma la solicitud del
+contrato `comprobante-emision.request.schema.json` y no tiene lógica de negocio. El cálculo de tributos, la generación
+desde el XSD, la firma y todas las validaciones ocurren en el servidor.
 
 Sin configuración, la firma usa un **certificado de prueba autofirmado** que se genera al iniciar. No es válido
 ante SUNAT. Para un certificado real: `ABC_CERTIFICADO_PFX`, `ABC_CERTIFICADO_CLAVE` y `ABC_CERTIFICADO_ALIAS`.

@@ -22,9 +22,11 @@ El detalle completo está en [docs/11-fase-2-implementacion.md](docs/11-fase-2-i
   adaptadores (JAXB, XMLDSig, memoria). Las reglas ArchUnit del § 6.5 se ejecutan en cada build.
 - **Regresión RNF-03.** Las solicitudes de `specs/ejemplos/json` producen los mismos documentos de `specs/ubl`.
   El **`DigestValue` de la firma es idéntico** al de los ejemplos firmados de la fase 1.
-- **Vista web** en <http://localhost:8080/>: se elige o edita una solicitud, se emite y se ve o descarga el XML UBL 2.1
-  firmado, con el resultado de cada capa de validación y las reglas `VAL-*` que fallen.
-- **129 pruebas unitarias y de API**, con cobertura de líneas del 95,6 % (el build falla si baja del 90 %).
+- **Vista web** en <http://localhost:8080/>: un formulario donde se digitan los datos de la factura o boleta
+  (cliente, ítems, IGV, ISC, ICBPER, forma de pago). El servidor calcula los tributos y genera el XML UBL 2.1
+  firmado, que se ve y se descarga. Las listas usan los catálogos SUNAT del contrato y cada regla `VAL-*`
+  incumplida se marca en su campo.
+- **130 pruebas unitarias y de API**, con cobertura de líneas del 95,9 % (el build falla si baja del 90 %).
 
 ```bash
 cd servidor
@@ -66,8 +68,8 @@ docs/                         10 capítulos de la especificación + 11 (implemen
 servidor/                     FASE 2: servidor Java 21 + Spring Boot 3 (emisión, motor tributario, UBL, firma)
   src/main/java/pe/abc/comercial/facturacion/   web · aplicacion (puertos) · dominio · infraestructura
   src/main/java/pe/abc/comercial/cpe/           api · aplicacion · infraestructura/{ubl, firma}
-  src/main/resources/static/                    vista web (index.html): cliente de la API para generar y ver los XML
-  src/test/java/                                129 pruebas (regresión specs/ubl, generación, reglas, API, ArchUnit)
+  src/main/resources/static/                    vista web (index.html): formulario que genera el XML con los datos digitados
+  src/test/java/                                130 pruebas (regresión specs/ubl, generación, reglas, API, ArchUnit)
 specs/
   schemas/                    contratos de datos: JSON Schema 2020-12 (11 archivos)
   openapi/                    contrato REST: OpenAPI 3.1 (43 rutas, 50 operaciones)

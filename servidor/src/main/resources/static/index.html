@@ -7,46 +7,75 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f5fbf'/%3E%3Ctext x='16' y='22' font-size='14' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'%3EXML%3C/text%3E%3C/svg%3E">
 <!--
   Vista de la fase 2. Es un cliente más de la API REST (/api/v1/comprobantes): no tiene lógica de negocio.
-  Todo el cálculo, la generación del XML desde UBL-Invoice-2.1.xsd, la firma y las validaciones ocurren en el servidor.
+  El formulario solo arma la solicitud del contrato comprobante-emision.request.schema.json; los catálogos SUNAT
+  se leen de specs/schemas/catalogos-sunat.schema.json. El cálculo de tributos, la generación del XML desde
+  UBL-Invoice-2.1.xsd, la firma y todas las validaciones (VAL-*) ocurren en el servidor.
 -->
 <style>
   :root {
     --fondo: #f5f6f8; --panel: #ffffff; --texto: #1d2330; --suave: #5d6677; --borde: #dde1e8;
     --primario: #1f5fbf; --primario-texto: #ffffff; --ok: #1b7f45; --ok-fondo: #e6f4ec;
-    --error: #b42318; --error-fondo: #fdecea; --pendiente: #8a94a6; --codigo: #f0f2f5;
+    --error: #b42318; --error-fondo: #fdecea; --pendiente: #8a94a6; --codigo: #f0f2f5; --campo: #ffffff;
     --x-etiqueta: #1f5fbf; --x-atributo: #8a4b00; --x-valor: #1b7f45; --x-comentario: #8a94a6;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --fondo: #14171d; --panel: #1c2028; --texto: #e6e9ef; --suave: #9aa3b2; --borde: #2e3440;
       --primario: #5b9bff; --primario-texto: #0d1117; --ok: #4cc38a; --ok-fondo: #15301f;
-      --error: #ff8a80; --error-fondo: #3a1d1a; --pendiente: #6b7485; --codigo: #12151b;
+      --error: #ff8a80; --error-fondo: #3a1d1a; --pendiente: #6b7485; --codigo: #12151b; --campo: #161a21;
       --x-etiqueta: #7fb0ff; --x-atributo: #f0b45a; --x-valor: #6fd39f; --x-comentario: #6b7485;
     }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--fondo); color: var(--texto);
          font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { padding: 20px 24px 8px; max-width: 1400px; margin: 0 auto; }
+  header { padding: 20px 24px 8px; max-width: 1500px; margin: 0 auto; }
   header h1 { margin: 0; font-size: 22px; }
   header p { margin: 4px 0 0; color: var(--suave); }
-  main { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px;
-         padding: 16px 24px 32px; max-width: 1400px; margin: 0 auto; }
-  @media (max-width: 960px) { main { grid-template-columns: 1fr; padding: 12px 16px 24px; }
-                              header { padding: 16px 16px 4px; } }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px;
+         padding: 16px 24px 32px; max-width: 1500px; margin: 0 auto; align-items: start; }
+  @media (max-width: 1060px) { main { grid-template-columns: 1fr; padding: 12px 16px 24px; }
+                               header { padding: 16px 16px 4px; } }
   .panel { background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 16px; min-width: 0; }
-  .panel h2 { margin: 0 0 12px; font-size: 16px; }
-  label { display: block; font-size: 13px; color: var(--suave); margin-bottom: 4px; }
-  select, textarea { width: 100%; font: inherit; color: var(--texto); background: var(--panel);
-                     border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; }
-  textarea { font: 13px/1.45 ui-monospace, "Cascadia Code", Consolas, monospace; min-height: 460px; resize: vertical;
+  .panel > h2 { margin: 0 0 12px; font-size: 16px; }
+  label, .etiqueta { display: block; font-size: 12.5px; color: var(--suave); margin-bottom: 3px; }
+  input, select, textarea { width: 100%; font: inherit; font-size: 14px; color: var(--texto); background: var(--campo);
+                            border: 1px solid var(--borde); border-radius: 7px; padding: 7px 9px; min-width: 0; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--primario); outline-offset: -1px; }
+  input[readonly] { background: var(--codigo); color: var(--suave); }
+  textarea { font: 13px/1.45 ui-monospace, "Cascadia Code", Consolas, monospace; min-height: 520px; resize: vertical;
              background: var(--codigo); white-space: pre; overflow-wrap: normal; overflow-x: auto; }
-  .ayuda { font-size: 13px; color: var(--suave); margin: 6px 0 12px; }
-  .acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  button, .boton { font: inherit; font-size: 14px; border-radius: 8px; padding: 8px 14px; cursor: pointer;
+  .ayuda { font-size: 12.5px; color: var(--suave); margin: 4px 0 0; }
+  .obligatorio::after { content: " *"; color: var(--error); }
+  fieldset { border: 1px solid var(--borde); border-radius: 9px; padding: 12px 12px 14px; margin: 0 0 14px; min-width: 0; }
+  legend { font-weight: 600; font-size: 14px; padding: 0 6px; }
+  .fila { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .fila + .fila { margin-top: 10px; }
+  .ancho2 { grid-column: span 2; }
+  @media (max-width: 520px) { .ancho2 { grid-column: auto; } }
+  .acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+  button, .boton { font: inherit; font-size: 14px; border-radius: 8px; padding: 7px 13px; cursor: pointer;
                    border: 1px solid var(--borde); background: var(--panel); color: var(--texto); text-decoration: none; }
   button.primario { background: var(--primario); color: var(--primario-texto); border-color: var(--primario); font-weight: 600; }
+  button.chico { font-size: 13px; padding: 4px 10px; }
+  button.quitar { color: var(--error); }
   button:disabled { opacity: .55; cursor: progress; }
+  .segmentado { display: inline-flex; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; }
+  .segmentado button { border: none; border-radius: 0; background: none; color: var(--suave); }
+  .segmentado button[aria-pressed="true"] { background: var(--primario); color: var(--primario-texto); font-weight: 600; }
+  .item { border: 1px solid var(--borde); border-radius: 9px; padding: 10px; margin-bottom: 10px; }
+  .item-cab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+  .item-cab b { font-size: 13.5px; }
+  .item-total { font-size: 13px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  details.extra { margin-top: 8px; }
+  details.extra summary { cursor: pointer; font-size: 13px; color: var(--primario); }
+  details.extra .fila { margin-top: 8px; }
+  .cuota { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; margin-top: 8px; }
+  .cuota span { font-size: 13px; color: var(--suave); padding-bottom: 8px; }
+  .totales-vivo { border-radius: 9px; background: var(--codigo); padding: 10px 12px; font-size: 14px; }
+  .totales-vivo table td { border: none; padding: 2px 0; }
+  .campo-mal { border-color: var(--error) !important; background: var(--error-fondo) !important; }
+  .msg-campo { color: var(--error); font-size: 12.5px; margin-top: 3px; }
   .capas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
   @media (max-width: 560px) { .capas { grid-template-columns: 1fr; } }
   .capa { border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
@@ -63,97 +92,254 @@
   .pestanas button[aria-selected="true"] { color: var(--texto); border-bottom-color: var(--primario); font-weight: 600; }
   .vacio { color: var(--suave); padding: 32px 8px; text-align: center; }
   .aviso { border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
-  .aviso.ok { background: var(--ok-fondo); color: var(--texto); border: 1px solid var(--ok); }
-  .aviso.mal { background: var(--error-fondo); color: var(--texto); border: 1px solid var(--error); }
+  .aviso.ok { background: var(--ok-fondo); border: 1px solid var(--ok); }
+  .aviso.mal { background: var(--error-fondo); border: 1px solid var(--error); }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--borde); vertical-align: top; }
   th { color: var(--suave); font-weight: 600; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .tabla { overflow-x: auto; margin-bottom: 14px; }
-  .datos { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; font-size: 14px; margin-bottom: 14px; }
+  .datos { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; font-size: 14px; margin: 0 0 14px; }
   .datos dt { color: var(--suave); }
   .datos dd { margin: 0; overflow-wrap: anywhere; }
   pre { margin: 0; background: var(--codigo); border: 1px solid var(--borde); border-radius: 8px; padding: 12px;
-        font: 12.5px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; overflow: auto; max-height: 620px;
-        white-space: pre; }
-  .xe { color: var(--x-etiqueta); } .xa { color: var(--x-atributo); } .xv { color: var(--x-valor); }
-  .xc { color: var(--x-comentario); }
+        font: 12.5px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; overflow: auto; max-height: 640px; white-space: pre; }
+  .xe { color: var(--x-etiqueta); } .xa { color: var(--x-atributo); } .xv { color: var(--x-valor); } .xc { color: var(--x-comentario); }
   code.regla { font-weight: 700; color: var(--error); white-space: nowrap; }
   .historial { list-style: none; padding: 0; margin: 0; }
   .historial li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--borde); font-size: 14px; }
   .historial a { color: var(--primario); }
+  .sin-margen-sup { margin: 0 0 14px; } .barra-xml { margin: 0 0 10px; }
+  .flexible { width: auto; flex: 1; min-width: 200px; } .estrecho { width: 70px; }
+  label.separado { margin-top: 10px; } .subtitulo { margin: 20px 0 8px; font-size: 16px; }
+  /* El resultado acompaña al formulario (que es largo) mientras se desplaza la página */
+  @media (min-width: 1061px) { .resultado { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; } }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <header>
   <h1>Emisión de comprobantes · XML UBL 2.1</h1>
-  <p>Factura y boleta electrónica según SUNAT. El XML se genera con las clases derivadas de <code>UBL-Invoice-2.1.xsd</code>, se firma y se valida contra el XSD oficial.</p>
+  <p>Digita los datos de la factura o boleta. El servidor aplica las normas SUNAT, calcula los tributos y genera el XML con las clases derivadas de <code>UBL-Invoice-2.1.xsd</code>; luego lo firma y lo valida contra el XSD oficial.</p>
 </header>
 
 <main>
+  <!-- ======================= 1. SOLICITUD ======================= -->
   <section class="panel" aria-labelledby="t-solicitud">
-    <h2 id="t-solicitud">1. Solicitud</h2>
-    <label for="ejemplo">Ejemplo de <code>specs/ejemplos/json</code></label>
-    <select id="ejemplo">
-      <optgroup label="Válidos">
-        <option value="01-emitir-factura-credito.request.json">Factura a crédito con bonificación (F001)</option>
-        <option value="02-emitir-boleta-icbper.request.json">Boleta con ICBPER y exonerado (B001)</option>
-        <option value="03-emitir-factura-isc.request.json">Factura con ISC (Catálogo N.° 08)</option>
-      </optgroup>
-      <optgroup label="Fuera del alcance de la fase 2 (VAL-ALC-01)">
-        <option value="04-emitir-nota-credito.request.json">Nota de crédito</option>
-      </optgroup>
-      <optgroup label="Inválidos (muestran las validaciones)">
-        <option value="invalidos/i01-boleta-con-serie-de-factura.json">Boleta con serie de factura</option>
-        <option value="invalidos/i02-factura-a-cliente-con-dni.json">Factura a cliente con DNI</option>
-        <option value="invalidos/i03-gratuita-con-valor-unitario.json">Gratuita con valor unitario</option>
-        <option value="invalidos/i05-credito-sin-cuotas.json">Crédito sin cuotas</option>
-        <option value="invalidos/i06-isc-al-valor-sin-tasa.json">ISC al valor sin tasa</option>
-        <option value="invalidos/i07-moneda-extranjera-sin-tipo-cambio.json">Moneda extranjera sin tipo de cambio</option>
-      </optgroup>
-    </select>
-    <p class="ayuda">Puedes editar el JSON antes de enviarlo. El contrato es <code>comprobante-emision.request.schema.json</code>.</p>
-    <label for="cuerpo">Cuerpo (JSON)</label>
-    <textarea id="cuerpo" spellcheck="false" aria-describedby="t-solicitud"></textarea>
+    <h2 id="t-solicitud">1. Datos del comprobante</h2>
+    <div class="acciones sin-margen-sup">
+      <div class="segmentado" role="group" aria-label="Modo de ingreso">
+        <button type="button" id="modo-form" aria-pressed="true">Formulario</button>
+        <button type="button" id="modo-json" aria-pressed="false">JSON (avanzado)</button>
+      </div>
+      <select id="ejemplo-form" class="flexible" aria-label="Cargar un ejemplo en el formulario">
+        <option value="">Cargar un ejemplo…</option>
+        <option value="01-emitir-factura-credito.request.json">Factura a crédito con bonificación</option>
+        <option value="02-emitir-boleta-icbper.request.json">Boleta con ICBPER y exonerado</option>
+        <option value="03-emitir-factura-isc.request.json">Factura con ISC</option>
+      </select>
+    </div>
+
+    <!-- --------------- Formulario --------------- -->
+    <div id="formulario">
+      <fieldset>
+        <legend>Comprobante</legend>
+        <div class="fila">
+          <div>
+            <span class="etiqueta obligatorio">Tipo (Catálogo 01)</span>
+            <div class="segmentado" role="group" aria-label="Tipo de comprobante">
+              <button type="button" data-tipo="01" aria-pressed="true">Factura</button>
+              <button type="button" data-tipo="03" aria-pressed="false">Boleta</button>
+            </div>
+          </div>
+          <div><label for="f-serie" class="obligatorio">Serie</label>
+            <input type="text" id="f-serie" data-campo="/serie" maxlength="4" value="F001"></div>
+          <div><label for="f-fecha">Fecha de emisión</label>
+            <input id="f-fecha" type="date" data-campo="/fechaEmision"></div>
+          <div><label for="f-hora">Hora</label>
+            <input id="f-hora" type="time" step="1" data-campo="/horaEmision"></div>
+        </div>
+        <div class="fila">
+          <div><label for="f-operacion">Tipo de operación (Cat. 51)</label>
+            <select id="f-operacion" data-campo="/tipoOperacion" data-catalogo="Cat51TipoOperacion" data-alcance="0101"></select></div>
+          <div><label for="f-moneda" class="obligatorio">Moneda (Cat. 02)</label>
+            <select id="f-moneda" data-campo="/moneda" data-catalogo="Cat02Moneda"></select></div>
+          <div id="caja-cambio" hidden><label for="f-cambio" class="obligatorio">Tipo de cambio</label>
+            <input type="text" id="f-cambio" data-campo="/tipoCambio" inputmode="decimal" placeholder="3.750"></div>
+          <div><label for="f-vence">Fecha de vencimiento</label>
+            <input id="f-vence" type="date" data-campo="/fechaVencimiento"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Cliente (adquirente)</legend>
+        <div class="fila">
+          <div><label for="f-tdoc" class="obligatorio">Tipo de documento (Cat. 06)</label>
+            <select id="f-tdoc" data-campo="/cliente/tipoDocumento" data-catalogo="Cat06TipoDocumentoIdentidad"></select></div>
+          <div><label for="f-ndoc" class="obligatorio">Número de documento</label>
+            <input type="text" id="f-ndoc" data-campo="/cliente/numeroDocumento" maxlength="15" placeholder="20456789120"></div>
+          <div class="ancho2"><label for="f-nombre" class="obligatorio">Razón social o nombre</label>
+            <input type="text" id="f-nombre" data-campo="/cliente/razonSocial" maxlength="1500"></div>
+        </div>
+        <div class="fila">
+          <div class="ancho2"><label for="f-direccion">Dirección</label>
+            <input type="text" id="f-direccion" data-campo="/cliente/direccion" maxlength="200"></div>
+          <div><label for="f-ubigeo">Ubigeo (INEI)</label>
+            <input type="text" id="f-ubigeo" data-campo="/cliente/ubigeo" maxlength="6" inputmode="numeric" placeholder="100601"></div>
+          <div><label for="f-correo">Correo</label>
+            <input id="f-correo" type="email" data-campo="/cliente/correo"></div>
+        </div>
+        <div class="acciones"><button type="button" class="chico" id="btn-varios">Cliente sin identificar (boleta)</button></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Productos o servicios</legend>
+        <div id="items"></div>
+        <button type="button" class="chico" id="btn-item">+ Agregar ítem</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Forma de pago</legend>
+        <div class="segmentado" role="group" aria-label="Forma de pago">
+          <button type="button" data-pago="CONTADO" aria-pressed="true">Contado</button>
+          <button type="button" data-pago="CREDITO" aria-pressed="false">Crédito</button>
+        </div>
+        <div id="caja-cuotas" hidden data-campo="/formaPago/cuotas">
+          <div id="cuotas"></div>
+          <div class="acciones">
+            <button type="button" class="chico" id="btn-cuota">+ Agregar cuota</button>
+            <button type="button" class="chico" id="btn-repartir">Repartir el total en cuotas mensuales</button>
+            <input id="n-cuotas" type="number" min="1" max="36" value="2" class="estrecho" aria-label="Número de cuotas">
+          </div>
+          <p class="ayuda">La suma de las cuotas debe ser igual al importe pendiente (VAL-PAG-*).</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Documentos relacionados (opcional)</legend>
+        <div class="fila">
+          <div><label for="f-oc">Orden de compra</label>
+            <input type="text" id="f-oc" data-campo="/ordenCompra" maxlength="20"></div>
+          <div><label for="f-guia">Guía de remisión (serie-número)</label>
+            <input type="text" id="f-guia" data-campo="/guiasRemision/0/numero" placeholder="T001-45"></div>
+          <div><label for="f-guia-tipo">Tipo de guía</label>
+            <select id="f-guia-tipo" data-campo="/guiasRemision/0/tipo">
+              <option value="09">09 · Guía de remisión remitente</option>
+              <option value="31">31 · Guía de remisión transportista</option>
+            </select></div>
+        </div>
+      </fieldset>
+
+      <div class="totales-vivo" id="totales-vivo" aria-live="polite">Completa los ítems para ver los totales calculados por el servidor.</div>
+    </div>
+
+    <!-- --------------- JSON avanzado --------------- -->
+    <div id="modo-json-caja" hidden>
+      <label for="ejemplo">Ejemplo de <code>specs/ejemplos/json</code></label>
+      <select id="ejemplo">
+        <optgroup label="Válidos">
+          <option value="01-emitir-factura-credito.request.json">Factura a crédito con bonificación (F001)</option>
+          <option value="02-emitir-boleta-icbper.request.json">Boleta con ICBPER y exonerado (B001)</option>
+          <option value="03-emitir-factura-isc.request.json">Factura con ISC (Catálogo N.° 08)</option>
+        </optgroup>
+        <optgroup label="Fuera del alcance de la fase 2 (VAL-ALC-01)">
+          <option value="04-emitir-nota-credito.request.json">Nota de crédito</option>
+        </optgroup>
+        <optgroup label="Inválidos (muestran las validaciones)">
+          <option value="invalidos/i01-boleta-con-serie-de-factura.json">Boleta con serie de factura</option>
+          <option value="invalidos/i02-factura-a-cliente-con-dni.json">Factura a cliente con DNI</option>
+          <option value="invalidos/i03-gratuita-con-valor-unitario.json">Gratuita con valor unitario</option>
+          <option value="invalidos/i05-credito-sin-cuotas.json">Crédito sin cuotas</option>
+          <option value="invalidos/i06-isc-al-valor-sin-tasa.json">ISC al valor sin tasa</option>
+          <option value="invalidos/i07-moneda-extranjera-sin-tipo-cambio.json">Moneda extranjera sin tipo de cambio</option>
+        </optgroup>
+      </select>
+      <p class="ayuda">El contrato es <code>comprobante-emision.request.schema.json</code>.</p>
+      <label for="cuerpo" class="separado">Cuerpo (JSON)</label>
+      <textarea id="cuerpo" spellcheck="false"></textarea>
+    </div>
+
     <div class="acciones">
-      <button class="primario" id="btn-emitir">Emitir y generar XML</button>
-      <button id="btn-calcular" title="Solo calcula los tributos y totales; no numera ni genera XML">Solo calcular</button>
-      <button id="btn-hoy" title="Cambia fechaEmision por la fecha de hoy">Usar fecha de hoy</button>
+      <button type="button" class="primario" id="btn-emitir">Generar XML</button>
+      <button type="button" id="btn-calcular" title="Solo calcula tributos y totales; no numera ni genera XML">Solo calcular</button>
+      <button type="button" id="btn-ver-json" title="Muestra la solicitud que arma el formulario">Ver JSON del formulario</button>
+      <button type="button" id="btn-limpiar" title="Vacía el formulario">Limpiar</button>
     </div>
   </section>
 
-  <section class="panel" aria-labelledby="t-resultado">
+  <!-- ======================= 2. RESULTADO ======================= -->
+  <section class="panel resultado" aria-labelledby="t-resultado">
     <h2 id="t-resultado">2. Resultado</h2>
-    <div class="capas" aria-label="Capas de validación">
+    <div class="capas" role="group" aria-label="Capas de validación">
       <div class="capa nada" id="capa1"><b>Capa 1 · Contrato</b><span>JSON Schema 2020-12</span></div>
       <div class="capa nada" id="capa2"><b>Capa 2 · Normas</b><span>Reglas VAL-* y motor tributario</span></div>
       <div class="capa nada" id="capa3"><b>Capa 3 · Documento</b><span>XSD UBL 2.1, perfil SUNAT y firma</span></div>
     </div>
-
     <div id="estado"></div>
-
     <div class="pestanas" role="tablist" id="pestanas" hidden>
-      <button role="tab" data-p="resumen" aria-selected="true">Resumen</button>
-      <button role="tab" data-p="xml" aria-selected="false" id="tab-xml">XML UBL 2.1</button>
-      <button role="tab" data-p="json" aria-selected="false">Respuesta JSON</button>
+      <button type="button" role="tab" data-p="resumen" aria-selected="true">Resumen</button>
+      <button type="button" role="tab" data-p="xml" aria-selected="false" id="tab-xml">XML UBL 2.1</button>
+      <button type="button" role="tab" data-p="json" aria-selected="false">Respuesta JSON</button>
     </div>
-    <div id="p-resumen" role="tabpanel"><p class="vacio">Elige un ejemplo y pulsa <b>Emitir y generar XML</b>.</p></div>
+    <div id="p-resumen" role="tabpanel"><p class="vacio">Llena el formulario y pulsa <b>Generar XML</b>.</p></div>
     <div id="p-xml" role="tabpanel" hidden>
-      <div class="acciones" style="margin:0 0 10px">
-        <a class="boton" id="descargar" download>Descargar XML firmado</a>
-        <button id="copiar">Copiar</button>
+      <div class="acciones barra-xml">
+        <a class="boton" id="descargar" href="#" download>Descargar XML firmado</a>
+        <button type="button" id="copiar">Copiar</button>
       </div>
       <pre id="xml"></pre>
     </div>
     <div id="p-json" role="tabpanel" hidden><pre id="json"></pre></div>
-
     <div id="bloque-historial" hidden>
-      <h2 style="margin-top:20px">Emitidos en esta sesión</h2>
+      <h2 class="subtitulo">Emitidos en esta sesión</h2>
       <ul class="historial" id="historial"></ul>
     </div>
   </section>
 </main>
+
+<template id="tpl-item">
+  <div class="item">
+    <div class="item-cab"><b class="item-n">Ítem 1</b><span class="item-total"></span>
+      <button type="button" class="chico quitar" data-accion="quitar">Quitar</button></div>
+    <div class="fila">
+      <div class="ancho2"><label class="obligatorio">Descripción</label><input type="text" data-f="descripcion" maxlength="500"></div>
+      <div><label>Código</label><input type="text" data-f="codigoProducto" maxlength="30"></div>
+    </div>
+    <div class="fila">
+      <div><label class="obligatorio">Unidad (Cat. 03)</label><select data-f="unidadMedida" data-catalogo="Cat03UnidadMedida"></select></div>
+      <div><label class="obligatorio">Cantidad</label><input type="text" data-f="cantidad" inputmode="decimal" value="1"></div>
+      <div class="ancho2"><label class="obligatorio">Afectación IGV (Cat. 07)</label>
+        <select data-f="tipoAfectacionIgv" data-catalogo="Cat07TipoAfectacionIgv" data-fuera="17"></select></div>
+    </div>
+    <div class="fila">
+      <div class="ancho2"><label class="obligatorio">El importe unitario es…</label>
+        <select data-f="tipoPrecio">
+          <option value="valorUnitario">Valor unitario (sin IGV)</option>
+          <option value="precioUnitario">Precio unitario (con IGV)</option>
+        </select></div>
+      <div class="ancho2"><label class="obligatorio etq-importe">Importe unitario</label><input type="text" data-f="importe" inputmode="decimal" placeholder="0.00"></div>
+    </div>
+    <details class="extra">
+      <summary>ISC (Catálogo 08) e ICBPER (bolsas)</summary>
+      <div class="fila">
+        <div><label>Sistema ISC</label><select data-f="iscSistema" data-catalogo="Cat08SistemaIsc" data-vacio="Sin ISC"></select></div>
+        <div data-isc="01 03"><label>Tasa ISC (%)</label><input type="text" data-f="iscTasa" inputmode="decimal" placeholder="25.00"></div>
+        <div data-isc="02"><label>Monto fijo por unidad</label><input type="text" data-f="iscMontoFijo" inputmode="decimal"></div>
+        <div data-isc="03"><label>Precio de venta al público</label><input type="text" data-f="iscPvp" inputmode="decimal"></div>
+        <div><label>Bolsas plásticas (ICBPER)</label><input data-f="bolsas" type="number" min="0" max="9999" placeholder="0"></div>
+      </div>
+    </details>
+  </div>
+</template>
+
+<template id="tpl-cuota">
+  <div class="cuota">
+    <span class="cuota-n">1</span>
+    <div><label>Monto</label><input type="text" data-f="monto" inputmode="decimal" placeholder="0.00"></div>
+    <div><label>Vencimiento</label><input data-f="fechaVencimiento" type="date"></div>
+    <button type="button" class="chico quitar" data-accion="quitar">Quitar</button>
+  </div>
+</template>
 
 <script>
 (() => {
@@ -161,50 +347,326 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const TIPOS = { "01": "Factura", "03": "Boleta de venta", "07": "Nota de crédito", "08": "Nota de débito" };
-  let xmlTexto = "";
-  // El nombre SUNAT (RUC-tipo-serie-número) viene sin extensión
   const nombreXml = (n) => (n || "comprobante") + (/\.xml$/i.test(n || "") ? "" : ".xml");
+  const GRATUITAS = new Set(["11", "12", "13", "14", "15", "16", "21", "31", "32", "33", "34", "35", "36", "37"]);
+  let catalogos = {}, modo = "form", tipo = "01", pago = "CONTADO", xmlTexto = "", ultimoTotal = null;
 
-  // ---------- Solicitud ----------
-  async function cargarEjemplo() {
-    const r = await fetch("ejemplos/" + $("ejemplo").value);
-    $("cuerpo").value = r.ok ? JSON.stringify(await r.json(), null, 2)
-                             : "// No se encontró el ejemplo. Compila con: mvnw verify";
+  // ======================= Catálogos (del contrato de la fase 1) =======================
+  function llenarSelect(sel) {
+    const cat = catalogos[sel.dataset.catalogo];
+    if (!cat) return;
+    const fuera = (sel.dataset.fuera || "").split(" ");
+    const alcance = sel.dataset.alcance ? sel.dataset.alcance.split(" ") : null;
+    const valor = sel.value;
+    sel.innerHTML = (sel.dataset.vacio ? `<option value="">${esc(sel.dataset.vacio)}</option>` : "") +
+      cat.oneOf.map((o) => {
+        const noDisponible = fuera.includes(o.const) || (alcance && !alcance.includes(o.const));
+        return `<option value="${esc(o.const)}"${noDisponible ? " disabled" : ""}>${esc(o.const)} · ${esc(o.title)}${noDisponible ? " (fase posterior)" : ""}</option>`;
+      }).join("");
+    if (valor) sel.value = valor;
   }
 
-  function leerCuerpo() {
+  async function cargarCatalogos() {
+    try {
+      const r = await fetch("contratos/catalogos-sunat.schema.json");
+      catalogos = (await r.json()).$defs;
+    } catch { catalogos = {}; }
+    document.querySelectorAll("select[data-catalogo]").forEach(llenarSelect);
+    $("f-operacion").value = "0101";
+    $("f-moneda").value = "PEN";
+    $("f-tdoc").value = "6";
+  }
+
+  // ======================= Formulario: ítems y cuotas =======================
+  function agregarItem(datos = {}) {
+    const nodo = $("tpl-item").content.firstElementChild.cloneNode(true);
+    nodo.querySelectorAll("select[data-catalogo]").forEach(llenarSelect);
+    const f = (n) => nodo.querySelector(`[data-f="${n}"]`);
+    f("unidadMedida").value = datos.unidadMedida || "NIU";
+    f("tipoAfectacionIgv").value = datos.tipoAfectacionIgv || "10";
+    f("descripcion").value = datos.descripcion || "";
+    f("codigoProducto").value = datos.codigoProducto || "";
+    f("cantidad").value = datos.cantidad || "1";
+    f("tipoPrecio").value = datos.precioUnitario ? "precioUnitario" : "valorUnitario";
+    f("importe").value = datos.valorUnitario || datos.precioUnitario || datos.valorReferencialUnitario || "";
+    if (datos.isc) {
+      f("iscSistema").value = datos.isc.sistema || "";
+      f("iscTasa").value = datos.isc.tasa || "";
+      f("iscMontoFijo").value = datos.isc.montoFijoUnitario || "";
+      f("iscPvp").value = datos.isc.precioVentaPublicoSugerido || "";
+    }
+    if (datos.icbper) f("bolsas").value = datos.icbper.cantidadBolsas;
+    if (datos.isc || datos.icbper) nodo.querySelector("details").open = true;
+    nodo.querySelector('[data-accion="quitar"]').addEventListener("click", () => {
+      if ($("items").children.length > 1) { nodo.remove(); renumerar(); recalcularPronto(); }
+    });
+    $("items").appendChild(nodo);
+    renumerar();
+    return nodo;
+  }
+
+  function agregarCuota(datos = {}) {
+    const nodo = $("tpl-cuota").content.firstElementChild.cloneNode(true);
+    nodo.querySelector('[data-f="monto"]').value = datos.monto || "";
+    nodo.querySelector('[data-f="fechaVencimiento"]').value = datos.fechaVencimiento || "";
+    nodo.querySelector('[data-accion="quitar"]').addEventListener("click", () => { nodo.remove(); renumerar(); });
+    $("cuotas").appendChild(nodo);
+    renumerar();
+  }
+
+  // Ajusta etiquetas y rutas (data-campo) según la posición y el tipo de cada ítem
+  function renumerar() {
+    [...$("items").children].forEach((nodo, i) => {
+      nodo.querySelector(".item-n").textContent = `Ítem ${i + 1}`;
+      nodo.dataset.campo = `/items/${i}`;
+      const afect = nodo.querySelector('[data-f="tipoAfectacionIgv"]').value;
+      const gratuita = GRATUITAS.has(afect);
+      const tipoPrecio = nodo.querySelector('[data-f="tipoPrecio"]');
+      tipoPrecio.disabled = gratuita;
+      nodo.querySelector(".etq-importe").textContent = gratuita ? "Valor referencial unitario (operación gratuita)" : "Importe unitario";
+      const campoImporte = gratuita ? "valorReferencialUnitario" : tipoPrecio.value;
+      const sistema = nodo.querySelector('[data-f="iscSistema"]').value;
+      nodo.querySelectorAll("[data-isc]").forEach((d) => (d.hidden = !d.dataset.isc.split(" ").includes(sistema)));
+      const rutas = { descripcion: "descripcion", codigoProducto: "codigoProducto", unidadMedida: "unidadMedida",
+        cantidad: "cantidad", tipoAfectacionIgv: "tipoAfectacionIgv", importe: campoImporte, tipoPrecio: campoImporte,
+        iscSistema: "isc/sistema", iscTasa: "isc/tasa", iscMontoFijo: "isc/montoFijoUnitario",
+        iscPvp: "isc/precioVentaPublicoSugerido", bolsas: "icbper/cantidadBolsas" };
+      nodo.querySelectorAll("[data-f]").forEach((el) => (el.dataset.campo = `/items/${i}/${rutas[el.dataset.f]}`));
+    });
+    [...$("cuotas").children].forEach((nodo, i) => {
+      nodo.querySelector(".cuota-n").textContent = `${i + 1}.`;
+      nodo.querySelector('[data-f="monto"]').dataset.campo = `/formaPago/cuotas/${i}/monto`;
+      nodo.querySelector('[data-f="fechaVencimiento"]').dataset.campo = `/formaPago/cuotas/${i}/fechaVencimiento`;
+    });
+  }
+
+  // ======================= Selectores segmentados =======================
+  function presionar(grupo, atributo, valor) {
+    document.querySelectorAll(`[${atributo}]`).forEach((b) => b.setAttribute("aria-pressed", String(b.getAttribute(atributo) === valor)));
+  }
+  function elegirTipo(nuevo) {
+    tipo = nuevo;
+    presionar(null, "data-tipo", tipo);
+    const serie = $("f-serie");
+    if (/^[FB]\d{3}$/.test(serie.value) || !serie.value) serie.value = (tipo === "01" ? "F" : "B") + (serie.value.slice(1) || "001");
+    if (tipo === "01" && $("f-tdoc").value !== "6") $("f-tdoc").value = "6";
+  }
+  function elegirPago(nuevo) {
+    pago = nuevo;
+    presionar(null, "data-pago", pago);
+    $("caja-cuotas").hidden = pago !== "CREDITO";
+    if (pago === "CREDITO" && !$("cuotas").children.length) agregarCuota();
+  }
+  document.querySelectorAll("[data-tipo]").forEach((b) => b.addEventListener("click", () => { elegirTipo(b.dataset.tipo); recalcularPronto(); }));
+  document.querySelectorAll("[data-pago]").forEach((b) => b.addEventListener("click", () => elegirPago(b.dataset.pago)));
+
+  $("f-moneda").addEventListener("change", () => ($("caja-cambio").hidden = $("f-moneda").value === "PEN"));
+  $("btn-item").addEventListener("click", () => agregarItem().querySelector('[data-f="descripcion"]').focus());
+  $("btn-cuota").addEventListener("click", () => agregarCuota());
+  $("btn-varios").addEventListener("click", () => {
+    elegirTipo("03");
+    $("f-tdoc").value = "0"; $("f-ndoc").value = "00000000"; $("f-nombre").value = "CLIENTES VARIOS";
+    $("f-direccion").value = ""; $("f-ubigeo").value = ""; $("f-correo").value = "";
+    recalcularPronto();
+  });
+
+  // Reparte el importe total que calculó el servidor; la última cuota absorbe el redondeo
+  $("btn-repartir").addEventListener("click", async () => {
+    await recalcular();
+    if (!ultimoTotal) { $("totales-vivo").textContent = "Primero completa los ítems: hace falta el importe total."; return; }
+    const n = Math.max(1, Math.min(36, parseInt($("n-cuotas").value, 10) || 1));
+    const centimos = Math.round(Number(ultimoTotal) * 100);
+    const base = Math.floor(centimos / n);
+    const inicio = $("f-fecha").value ? new Date($("f-fecha").value + "T12:00:00") : new Date();
+    $("cuotas").innerHTML = "";
+    for (let i = 0; i < n; i++) {
+      const f = new Date(inicio); f.setMonth(f.getMonth() + i + 1);
+      agregarCuota({ monto: ((i === n - 1 ? centimos - base * (n - 1) : base) / 100).toFixed(2),
+                     fechaVencimiento: f.toISOString().slice(0, 10) });
+    }
+    $("f-vence").value = $("cuotas").lastElementChild.querySelector('[data-f="fechaVencimiento"]').value;
+  });
+
+  // ======================= Formulario ↔ solicitud (contrato) =======================
+  const txt = (id) => $(id).value.trim();
+  const num = (v) => v.trim().replace(",", ".");
+
+  function solicitudDesdeFormulario() {
+    const s = { tipoComprobante: tipo, serie: txt("f-serie").toUpperCase(), tipoOperacion: $("f-operacion").value, moneda: $("f-moneda").value };
+    if (txt("f-fecha")) s.fechaEmision = txt("f-fecha");
+    if (txt("f-hora")) s.horaEmision = txt("f-hora").length === 5 ? txt("f-hora") + ":00" : txt("f-hora");
+    if (txt("f-vence")) s.fechaVencimiento = txt("f-vence");
+    if (s.moneda !== "PEN" && txt("f-cambio")) s.tipoCambio = num(txt("f-cambio"));
+    s.cliente = { tipoDocumento: $("f-tdoc").value, numeroDocumento: txt("f-ndoc"), razonSocial: txt("f-nombre") };
+    if (txt("f-direccion")) s.cliente.direccion = txt("f-direccion");
+    if (txt("f-ubigeo")) s.cliente.ubigeo = txt("f-ubigeo");
+    if (txt("f-correo")) s.cliente.correo = txt("f-correo");
+    s.items = [...$("items").children].map((nodo) => {
+      const v = (n) => nodo.querySelector(`[data-f="${n}"]`).value.trim();
+      const it = { descripcion: v("descripcion"), unidadMedida: v("unidadMedida"), cantidad: num(v("cantidad")), tipoAfectacionIgv: v("tipoAfectacionIgv") };
+      if (v("codigoProducto")) it.codigoProducto = v("codigoProducto");
+      const campo = GRATUITAS.has(it.tipoAfectacionIgv) ? "valorReferencialUnitario" : v("tipoPrecio");
+      it[campo] = num(v("importe"));
+      if (v("iscSistema")) {
+        it.isc = { sistema: v("iscSistema") };
+        if (v("iscTasa")) it.isc.tasa = num(v("iscTasa"));
+        if (v("iscMontoFijo")) it.isc.montoFijoUnitario = num(v("iscMontoFijo"));
+        if (v("iscPvp")) it.isc.precioVentaPublicoSugerido = num(v("iscPvp"));
+      }
+      if (parseInt(v("bolsas"), 10) > 0) it.icbper = { cantidadBolsas: parseInt(v("bolsas"), 10) };
+      return it;
+    });
+    s.formaPago = { tipo: pago };
+    if (pago === "CREDITO") {
+      s.formaPago.cuotas = [...$("cuotas").children].map((nodo, i) => ({
+        numero: i + 1,
+        monto: num(nodo.querySelector('[data-f="monto"]').value),
+        fechaVencimiento: nodo.querySelector('[data-f="fechaVencimiento"]').value,
+      }));
+    }
+    if (txt("f-oc")) s.ordenCompra = txt("f-oc");
+    if (txt("f-guia")) s.guiasRemision = [{ tipo: $("f-guia-tipo").value, numero: txt("f-guia").toUpperCase() }];
+    return s;
+  }
+
+  function formularioDesdeSolicitud(s) {
+    elegirTipo(s.tipoComprobante === "03" ? "03" : "01");
+    $("f-serie").value = s.serie || "";
+    $("f-fecha").value = s.fechaEmision || "";
+    $("f-hora").value = s.horaEmision || "";
+    $("f-vence").value = s.fechaVencimiento || "";
+    $("f-operacion").value = s.tipoOperacion || "0101";
+    $("f-moneda").value = s.moneda || "PEN";
+    $("caja-cambio").hidden = $("f-moneda").value === "PEN";
+    $("f-cambio").value = s.tipoCambio || "";
+    const c = s.cliente || {};
+    $("f-tdoc").value = c.tipoDocumento || "6";
+    $("f-ndoc").value = c.numeroDocumento || "";
+    $("f-nombre").value = c.razonSocial || "";
+    $("f-direccion").value = c.direccion || "";
+    $("f-ubigeo").value = c.ubigeo || "";
+    $("f-correo").value = c.correo || "";
+    $("items").innerHTML = "";
+    (s.items && s.items.length ? s.items : [{}]).forEach(agregarItem);
+    $("cuotas").innerHTML = "";
+    (s.formaPago?.cuotas || []).forEach(agregarCuota);
+    elegirPago(s.formaPago?.tipo === "CREDITO" ? "CREDITO" : "CONTADO");
+    $("f-oc").value = s.ordenCompra || "";
+    $("f-guia").value = s.guiasRemision?.[0]?.numero || "";
+    $("f-guia-tipo").value = s.guiasRemision?.[0]?.tipo || "09";
+    renumerar();
+    limpiarErroresCampos();
+    recalcularPronto();
+  }
+
+  function hoy() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+
+  function limpiarFormulario() {
+    formularioDesdeSolicitud({ tipoComprobante: "01", serie: "F001", fechaEmision: hoy(), moneda: "PEN", tipoOperacion: "0101",
+                               cliente: { tipoDocumento: "6" }, items: [{}], formaPago: { tipo: "CONTADO" } });
+    $("totales-vivo").textContent = "Completa los ítems para ver los totales calculados por el servidor.";
+  }
+
+  $("formulario").addEventListener("input", (e) => {
+    if (e.target.matches('[data-f="tipoAfectacionIgv"], [data-f="tipoPrecio"], [data-f="iscSistema"]')) renumerar();
+    e.target.classList.remove("campo-mal");
+    e.target.parentElement.querySelector(".msg-campo")?.remove();
+    recalcularPronto();
+  });
+  $("formulario").addEventListener("change", (e) => {
+    if (e.target.matches("select")) { renumerar(); recalcularPronto(); }
+  });
+
+  $("ejemplo-form").addEventListener("change", async () => {
+    const archivo = $("ejemplo-form").value;
+    if (!archivo) return;
+    const s = await (await fetch("ejemplos/" + archivo)).json();
+    if (modo === "json") { $("cuerpo").value = JSON.stringify(s, null, 2); }
+    else formularioDesdeSolicitud(s);
+    $("ejemplo-form").value = "";
+  });
+
+  // ======================= Totales en vivo (calculados por el servidor) =======================
+  let temporizador = null, consulta = 0;
+  function recalcularPronto() { clearTimeout(temporizador); temporizador = setTimeout(recalcular, 500); }
+
+  async function recalcular() {
+    if (modo !== "form") return;
+    const s = solicitudDesdeFormulario();
+    // Los tributos y totales no dependen de las cuotas: se calculan sin ellas para poder repartir el total
+    s.formaPago = { tipo: "CONTADO" };
+    delete s.fechaVencimiento;
+    const completos = s.items.every((it) => it.descripcion && it.cantidad && (it.valorUnitario || it.precioUnitario || it.valorReferencialUnitario));
+    if (!completos) { ultimoTotal = null; return; }
+    const mia = ++consulta;
+    try {
+      const r = await fetch(API + "/calculos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(s) });
+      const d = await r.json().catch(() => ({}));
+      if (mia !== consulta) return;
+      const vivo = $("totales-vivo");
+      if (!r.ok) {
+        ultimoTotal = null;
+        const e = (d.errores || [])[0];
+        vivo.innerHTML = `Aún no se puede calcular: ${e ? `<code class="regla">${esc(e.regla)}</code> ${esc(e.mensaje)}` : esc(d.detail || "")}`;
+        return;
+      }
+      ultimoTotal = d.totales?.importeTotal || null;
+      [...$("items").children].forEach((nodo, i) => {
+        const it = d.items?.[i];
+        nodo.querySelector(".item-total").textContent = it ? `Valor ${it.valorVenta} · IGV ${it.montoIgv} · Total ${it.importeTotal}` : "";
+      });
+      const t = d.totales || {}, m = s.moneda;
+      const filas = [["Op. gravadas", t.operacionesGravadas], ["Op. exoneradas", t.operacionesExoneradas], ["Op. inafectas", t.operacionesInafectas],
+                     ["Op. gratuitas", t.operacionesGratuitas], ["IGV (18 %)", t.igv], ["ISC", t.isc], ["ICBPER", t.icbper]]
+        .filter(([, v]) => v && Number(v) !== 0)
+        .map(([n, v]) => `<tr><td>${n}</td><td class="num">${esc(v)}</td></tr>`).join("");
+      vivo.innerHTML = `<table><tbody>${filas}<tr><td><b>Importe total ${esc(m)}</b></td><td class="num"><b>${esc(t.importeTotal)}</b></td></tr></tbody></table>` +
+        (d.leyendas?.[0] ? `<p class="ayuda">${esc(d.leyendas[0].texto)}</p>` : "");
+    } catch { /* sin conexión: se ignora, el botón Generar informará */ }
+  }
+
+  // ======================= Modo formulario / JSON =======================
+  function cambiarModo(nuevo) {
+    modo = nuevo;
+    $("modo-form").setAttribute("aria-pressed", String(modo === "form"));
+    $("modo-json").setAttribute("aria-pressed", String(modo === "json"));
+    $("formulario").hidden = modo !== "form";
+    $("modo-json-caja").hidden = modo !== "json";
+    $("btn-ver-json").hidden = $("btn-limpiar").hidden = modo !== "form";
+    $("ejemplo-form").hidden = modo !== "form";
+  }
+  $("modo-form").addEventListener("click", () => {
+    try { formularioDesdeSolicitud(JSON.parse($("cuerpo").value)); } catch { /* JSON inválido: se conserva el formulario */ }
+    cambiarModo("form");
+  });
+  $("modo-json").addEventListener("click", () => { $("cuerpo").value = JSON.stringify(solicitudDesdeFormulario(), null, 2); cambiarModo("json"); });
+  $("btn-ver-json").addEventListener("click", () => $("modo-json").click());
+  $("btn-limpiar").addEventListener("click", limpiarFormulario);
+  $("ejemplo").addEventListener("change", async () => {
+    const r = await fetch("ejemplos/" + $("ejemplo").value);
+    $("cuerpo").value = r.ok ? JSON.stringify(await r.json(), null, 2) : "";
+  });
+
+  // ======================= Envío =======================
+  function leerSolicitud() {
+    if (modo === "form") return solicitudDesdeFormulario();
     try { return JSON.parse($("cuerpo").value); }
     catch (e) { mostrarError(400, { title: "JSON mal formado", detail: e.message, errores: [] }, 1); return null; }
   }
 
-  $("btn-hoy").addEventListener("click", () => {
-    const cuerpo = leerCuerpo(); if (!cuerpo) return;
-    const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
-    cuerpo.fechaEmision = hoy.toISOString().slice(0, 10);
-    $("cuerpo").value = JSON.stringify(cuerpo, null, 2);
-  });
-
-  // ---------- Capas de validación ----------
-  function capas(estados) {
-    ["capa1", "capa2", "capa3"].forEach((id, i) => { $(id).className = "capa " + (estados[i] || "nada"); });
-  }
-  // 400 = capa 1 (contrato) · 422 = capa 2 (normas) · 500 = capa 3 (documento)
-  function capaQueFallo(status) { return status === 400 ? 1 : status === 422 ? 2 : status >= 500 ? 3 : 0; }
-
-  // ---------- Envío ----------
   async function enviar(soloCalcular) {
-    const cuerpo = leerCuerpo(); if (!cuerpo) return;
+    const cuerpo = leerSolicitud(); if (!cuerpo) return;
+    limpiarErroresCampos();
     [$("btn-emitir"), $("btn-calcular")].forEach((b) => (b.disabled = true));
     $("estado").innerHTML = '<p class="vacio">Procesando…</p>';
     try {
       const r = await fetch(soloCalcular ? API + "/calculos" : API, {
         method: "POST",
-        headers: Object.assign({ "Content-Type": "application/json" },
-                               soloCalcular ? {} : { "Idempotency-Key": crypto.randomUUID() }),
+        headers: Object.assign({ "Content-Type": "application/json" }, soloCalcular ? {} : { "Idempotency-Key": crypto.randomUUID() }),
         body: JSON.stringify(cuerpo),
       });
       const datos = await r.json().catch(() => ({}));
-      if (!r.ok) { mostrarError(r.status, datos, capaQueFallo(r.status)); return; }
+      if (!r.ok) { mostrarError(r.status, datos, r.status === 400 ? 1 : r.status === 422 ? 2 : r.status >= 500 ? 3 : 0); return; }
       if (soloCalcular) { mostrarCalculo(datos); return; }
       await mostrarComprobante(datos);
       agregarHistorial(datos);
@@ -214,27 +676,55 @@
       [$("btn-emitir"), $("btn-calcular")].forEach((b) => (b.disabled = false));
     }
   }
-
   $("btn-emitir").addEventListener("click", () => enviar(false));
   $("btn-calcular").addEventListener("click", () => enviar(true));
-  $("ejemplo").addEventListener("change", cargarEjemplo);
 
-  // ---------- Resultado ----------
+  // ======================= Errores en los campos =======================
+  function limpiarErroresCampos() {
+    document.querySelectorAll(".campo-mal").forEach((el) => el.classList.remove("campo-mal"));
+    document.querySelectorAll(".msg-campo").forEach((el) => el.remove());
+  }
+  // Busca el campo del formulario con la ruta del error (p. ej. /items/0/cantidad) o, si no existe, su ancestro
+  function marcarCampo(ruta, mensaje, regla) {
+    if (modo !== "form" || !ruta) return;
+    let partes = ruta.split("/"), el = null;
+    while (partes.length > 1 && !el) {
+      el = document.querySelector(`#formulario [data-campo="${CSS.escape(partes.join("/"))}"]`);
+      partes = partes.slice(0, -1);
+    }
+    if (!el) return;
+    const caja = el.matches("input, select") ? el : el;
+    caja.classList.add("campo-mal");
+    const msg = document.createElement("div");
+    msg.className = "msg-campo";
+    msg.textContent = `${regla}: ${mensaje}`;
+    (el.matches("input, select") ? el.parentElement : el).appendChild(msg);
+    el.closest("details")?.setAttribute("open", "");
+    return el;
+  }
+
+  // ======================= Resultado =======================
+  function capas(estados) { ["capa1", "capa2", "capa3"].forEach((id, i) => ($(id).className = "capa " + (estados[i] || "nada"))); }
+
   function mostrarError(status, p, capa) {
     capas([1, 2, 3].map((n) => (n < capa ? "ok" : n === capa ? "mal" : "nada")));
-    const filas = (p.errores || []).map((e) =>
+    const errores = p.errores || [];
+    const filas = errores.map((e) =>
       `<tr><td><code class="regla">${esc(e.regla)}</code></td><td><code>${esc(e.campo)}</code></td><td>${esc(e.mensaje)}</td></tr>`).join("");
     $("estado").innerHTML =
-      `<div class="aviso mal"><b>${status ? "HTTP " + status + " · " : ""}${esc(p.title || "Error")}</b><br>${esc(p.detail || "")}</div>` +
+      `<div class="aviso mal"><b>${status ? "HTTP " + status + " · " : ""}${esc(p.title || "Error")}</b><br>${esc(p.detail || "")}` +
+      (modo === "form" && errores.length ? "<br>Los campos con problemas están marcados en rojo en el formulario." : "") + `</div>` +
       (filas ? `<div class="tabla"><table><thead><tr><th>Regla</th><th>Campo</th><th>Mensaje</th></tr></thead><tbody>${filas}</tbody></table></div>` : "");
     $("pestanas").hidden = true;
     ["p-resumen", "p-xml", "p-json"].forEach((id) => ($(id).hidden = true));
-    $("json").textContent = JSON.stringify(p, null, 2);
+    let primero = null;
+    errores.forEach((e) => { const el = marcarCampo(e.campo, e.mensaje, e.regla); primero = primero || el; });
+    primero?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   function tablaItems(items, moneda) {
     const filas = (items || []).map((it, i) => `<tr>
-      <td>${esc(it.numeroOrden ?? i + 1)}</td><td>${esc(it.descripcion ?? it.codigoProducto ?? "")}</td>
+      <td>${esc(it.numeroOrden ?? i + 1)}</td><td>${esc(it.descripcion ?? "")}</td>
       <td class="num">${esc(it.cantidad ?? "")}</td><td>${esc(it.tipoAfectacionIgv ?? "")}</td>
       <td class="num">${esc(it.valorVenta)}</td><td class="num">${esc(it.montoIgv)}</td>
       <td class="num">${esc(it.totalTributos)}</td><td class="num">${esc(it.importeTotal)}</td></tr>`).join("");
@@ -244,22 +734,19 @@
   }
 
   function tablaTotales(t) {
-    const nombres = { operacionesGravadas: "Op. gravadas", operacionesExoneradas: "Op. exoneradas",
-      operacionesInafectas: "Op. inafectas", operacionesGratuitas: "Op. gratuitas", igv: "IGV", isc: "ISC",
-      icbper: "ICBPER", totalTributos: "Total tributos", totalValorVenta: "Total valor de venta",
-      totalPrecioVenta: "Total precio de venta", importeTotal: "Importe total" };
+    const nombres = { operacionesGravadas: "Op. gravadas", operacionesExoneradas: "Op. exoneradas", operacionesInafectas: "Op. inafectas",
+      operacionesGratuitas: "Op. gratuitas", igv: "IGV", isc: "ISC", icbper: "ICBPER", totalTributos: "Total tributos",
+      totalValorVenta: "Total valor de venta", totalPrecioVenta: "Total precio de venta", importeTotal: "Importe total" };
     const filas = Object.entries(nombres).filter(([k]) => t && t[k] != null && (Number(t[k]) !== 0 || k === "importeTotal"))
       .map(([k, n]) => `<tr><td>${n}</td><td class="num">${k === "importeTotal" ? "<b>" + esc(t[k]) + "</b>" : esc(t[k])}</td></tr>`).join("");
     return `<div class="tabla"><table><tbody>${filas}</tbody></table></div>`;
   }
 
-  function leyendas(ls) {
-    return (ls || []).length ? `<p class="ayuda">${ls.map((l) => `<b>${esc(l.codigo)}</b>: ${esc(l.texto)}`).join("<br>")}</p>` : "";
-  }
+  const leyendas = (ls) => (ls || []).length ? `<p class="ayuda">${ls.map((l) => `<b>${esc(l.codigo)}</b>: ${esc(l.texto)}`).join("<br>")}</p>` : "";
 
   function mostrarCalculo(c) {
     capas(["ok", "ok", "nada"]);
-    $("estado").innerHTML = '<div class="aviso ok"><b>Cálculo correcto.</b> No se numeró ni se generó XML; usa <b>Emitir</b> para eso.</div>';
+    $("estado").innerHTML = '<div class="aviso ok"><b>Cálculo correcto.</b> No se numeró ni se generó XML; usa <b>Generar XML</b> para eso.</div>';
     activarPestanas(false);
     $("p-resumen").innerHTML = tablaItems(c.items) + tablaTotales(c.totales) + leyendas(c.leyendas);
     $("json").textContent = JSON.stringify(c, null, 2);
@@ -267,35 +754,31 @@
 
   async function mostrarComprobante(c) {
     capas(["ok", "ok", "ok"]);
-    const doc = c.documentoElectronico || {};
+    const doc = c.documentoElectronico || {}, cliente = c.cliente || {};
     $("estado").innerHTML = `<div class="aviso ok"><b>${esc(TIPOS[c.tipoComprobante] || c.tipoComprobante)} ${esc(c.numero)} emitida.</b>
       El XML firmado cumple <code>UBL-Invoice-2.1.xsd</code> y el perfil SUNAT.</div>`;
     activarPestanas(true);
-    const cliente = c.cliente || {};
     $("p-resumen").innerHTML = `<dl class="datos">
         <dt>Emisor</dt><dd>${esc(c.emisor?.razonSocial)} · RUC ${esc(c.emisor?.ruc)}</dd>
-        <dt>Cliente</dt><dd>${esc(cliente.razonSocial || cliente.nombre || "—")} · ${esc(cliente.numeroDocumento || "")}</dd>
+        <dt>Cliente</dt><dd>${esc(cliente.razonSocial || "—")} · ${esc(cliente.numeroDocumento || "")}</dd>
         <dt>Emisión</dt><dd>${esc(c.fechaEmision)} ${esc(c.horaEmision || "")} · ${esc(c.moneda)}</dd>
         <dt>Forma de pago</dt><dd>${esc(c.formaPago?.tipo || "CONTADO")}</dd>
-        <dt>Archivo</dt><dd><code>${esc(doc.nombreArchivo)}</code></dd>
+        <dt>Archivo</dt><dd><code>${esc(nombreXml(doc.nombreArchivo))}</code></dd>
         <dt>Hash (DigestValue)</dt><dd><code>${esc(doc.hash)}</code></dd>
       </dl>` + tablaItems(c.items, c.moneda) + tablaTotales(c.totales) + leyendas(c.leyendas);
     $("json").textContent = JSON.stringify(c, null, 2);
-
     const urlXml = c.enlaces?.xml || `${API}/${c.id}/xml`;
     $("descargar").href = urlXml;
     $("descargar").setAttribute("download", nombreXml(doc.nombreArchivo));
-    const r = await fetch(urlXml);
-    xmlTexto = await r.text();
+    xmlTexto = await (await fetch(urlXml)).text();
     $("xml").innerHTML = resaltarXml(xmlTexto);
+    elegirPestana("xml");
+    document.querySelector(".resultado").scrollTop = 0;
+    // En pantallas grandes el resultado ya está a la vista (sticky); en el celular, el formulario queda arriba
+    if (matchMedia("(max-width: 1060px)").matches) $("t-resultado").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function activarPestanas(conXml) {
-    $("pestanas").hidden = false;
-    $("tab-xml").hidden = !conXml;
-    elegirPestana("resumen");
-  }
-
+  function activarPestanas(conXml) { $("pestanas").hidden = false; $("tab-xml").hidden = !conXml; elegirPestana("resumen"); }
   function elegirPestana(p) {
     document.querySelectorAll("#pestanas button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.p === p)));
     ["resumen", "xml", "json"].forEach((x) => ($("p-" + x).hidden = x !== p));
@@ -308,7 +791,7 @@
     setTimeout(() => ($("copiar").textContent = "Copiar"), 1500);
   });
 
-  // Solo para mostrar: añade sangría y colores. La descarga entrega el XML firmado tal cual (la firma no se altera).
+  // Solo para mostrar: sangría y colores. La descarga entrega el XML firmado tal cual (la firma no se altera).
   function resaltarXml(xml) {
     let nivel = 0;
     const partes = xml.replace(/>\s*</g, "><").split(/(?=<)|(?<=>)/).filter((s) => s.trim());
@@ -325,20 +808,24 @@
       if (s.startsWith("<") && !s.startsWith("</") && !s.startsWith("<?") && !s.startsWith("<!") && !s.endsWith("/>")) nivel++;
       return s.startsWith("<") ? "\n" + sangria + linea : linea;
     }).join("").trim()
-      // valor de texto en la misma línea que su etiqueta de apertura
       .replace(/(<span class="xe">&gt;<\/span>)([^\n<]+)\n\s*(<span class="xe">&lt;\/)/g, "$1$2$3");
   }
 
-  // ---------- Historial ----------
   function agregarHistorial(c) {
     $("bloque-historial").hidden = false;
     const li = document.createElement("li");
-    li.innerHTML = `<span>${esc(TIPOS[c.tipoComprobante] || c.tipoComprobante)} <b>${esc(c.numero)}</b> · ${esc(c.moneda)} ${esc(c.totales?.importeTotal)}</span>
+    li.innerHTML = `<span>${esc(TIPOS[c.tipoComprobante] || c.tipoComprobante)} <b>${esc(c.numero)}</b> · ${esc(c.cliente?.razonSocial || "")} · ${esc(c.moneda)} ${esc(c.totales?.importeTotal)}</span>
       <a href="${esc(c.enlaces?.xml || API + "/" + c.id + "/xml")}" download="${esc(nombreXml(c.documentoElectronico?.nombreArchivo))}">XML</a>`;
     $("historial").prepend(li);
   }
 
-  cargarEjemplo();
+  // ======================= Inicio =======================
+  cargarCatalogos().then(() => {
+    limpiarFormulario();
+    $("f-hora").value = new Date().toTimeString().slice(0, 8);
+    fetch("ejemplos/01-emitir-factura-credito.request.json").then((r) => r.json())
+      .then((s) => ($("cuerpo").value = JSON.stringify(s, null, 2))).catch(() => {});
+  });
 })();
 </script>
 </body>

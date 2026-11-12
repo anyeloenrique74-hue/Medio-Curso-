@@ -99,6 +99,14 @@
                     <include>invalidos/*.json</include>
                 </includes>
             </resource>
+            <!-- Vista web: los catálogos SUNAT del formulario salen del contrato, no de una copia -->
+            <resource>
+                <directory>${specs.dir}/schemas</directory>
+                <targetPath>static/contratos</targetPath>
+                <includes>
+                    <include>catalogos-sunat.schema.json</include>
+                </includes>
+            </resource>
         </resources>
 
         <plugins>
