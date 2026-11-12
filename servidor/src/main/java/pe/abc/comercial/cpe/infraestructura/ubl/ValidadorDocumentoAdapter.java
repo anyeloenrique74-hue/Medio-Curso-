@@ -53,7 +53,9 @@ public final class ValidadorDocumentoAdapter implements ValidadorDocumentoPort {
         }
         try {
             SchemaFactory fabrica = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            fabrica.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "file,jar");
+            // Solo los XSD empaquetados: carpeta (file), jar clásico (jar) y jar ejecutable de Spring Boot (nested).
+            // Nunca http/https: el validador no descarga esquemas de la red.
+            fabrica.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "file,jar,nested");
             this.esquema = fabrica.newSchema(xsd);
         } catch (SAXException e) {
             throw new IllegalStateException("No se pudo compilar el XSD UBL 2.1", e);

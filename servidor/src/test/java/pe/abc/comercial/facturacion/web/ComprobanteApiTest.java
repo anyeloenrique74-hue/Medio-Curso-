@@ -219,4 +219,26 @@ class ComprobanteApiTest {
                     .andExpect(jsonPath("$.leyendas[0].texto").value("SON: TREINTA Y TRES CON 90/100 SOLES"));
         }
     }
+
+    @Nested
+    @DisplayName("Vista web")
+    class VistaWeb {
+
+        @Test
+        void laPaginaSeSirveYUsaLaApi() throws Exception {
+            mvc.perform(get("/index.html"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(org.hamcrest.Matchers.containsString("Emitir y generar XML")))
+                    .andExpect(content().string(org.hamcrest.Matchers.containsString("/api/v1/comprobantes")));
+        }
+
+        @ParameterizedTest
+        @CsvSource({"01-emitir-factura-credito.request.json", "02-emitir-boleta-icbper.request.json",
+                "03-emitir-factura-isc.request.json", "invalidos/i05-credito-sin-cuotas.json"})
+        void losEjemplosDeSpecsSeEmpaquetanParaLaVista(String archivo) throws Exception {
+            mvc.perform(get("/ejemplos/" + archivo))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tipoComprobante").exists());
+        }
+    }
 }

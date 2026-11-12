@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emisión UBL 2.1</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f5fbf'/%3E%3Ctext x='16' y='22' font-size='14' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'%3EXML%3C/text%3E%3C/svg%3E">
+<!--
+  Vista de la fase 2. Es un cliente más de la API REST (/api/v1/comprobantes): no tiene lógica de negocio.
+  Todo el cálculo, la generación del XML desde UBL-Invoice-2.1.xsd, la firma y las validaciones ocurren en el servidor.
+-->
+<style>
+  :root {
+    --fondo: #f5f6f8; --panel: #ffffff; --texto: #1d2330; --suave: #5d6677; --borde: #dde1e8;
+    --primario: #1f5fbf; --primario-texto: #ffffff; --ok: #1b7f45; --ok-fondo: #e6f4ec;
+    --error: #b42318; --error-fondo: #fdecea; --pendiente: #8a94a6; --codigo: #f0f2f5;
+    --x-etiqueta: #1f5fbf; --x-atributo: #8a4b00; --x-valor: #1b7f45; --x-comentario: #8a94a6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #14171d; --panel: #1c2028; --texto: #e6e9ef; --suave: #9aa3b2; --borde: #2e3440;
+      --primario: #5b9bff; --primario-texto: #0d1117; --ok: #4cc38a; --ok-fondo: #15301f;
+      --error: #ff8a80; --error-fondo: #3a1d1a; --pendiente: #6b7485; --codigo: #12151b;
+      --x-etiqueta: #7fb0ff; --x-atributo: #f0b45a; --x-valor: #6fd39f; --x-comentario: #6b7485;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fondo); color: var(--texto);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 20px 24px 8px; max-width: 1400px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; color: var(--suave); }
+  main { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px;
+         padding: 16px 24px 32px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 960px) { main { grid-template-columns: 1fr; padding: 12px 16px 24px; }
+                              header { padding: 16px 16px 4px; } }
+  .panel { background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 16px; min-width: 0; }
+  .panel h2 { margin: 0 0 12px; font-size: 16px; }
+  label { display: block; font-size: 13px; color: var(--suave); margin-bottom: 4px; }
+  select, textarea { width: 100%; font: inherit; color: var(--texto); background: var(--panel);
+                     border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; }
+  textarea { font: 13px/1.45 ui-monospace, "Cascadia Code", Consolas, monospace; min-height: 460px; resize: vertical;
+             background: var(--codigo); white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+  .ayuda { font-size: 13px; color: var(--suave); margin: 6px 0 12px; }
+  .acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  button, .boton { font: inherit; font-size: 14px; border-radius: 8px; padding: 8px 14px; cursor: pointer;
+                   border: 1px solid var(--borde); background: var(--panel); color: var(--texto); text-decoration: none; }
+  button.primario { background: var(--primario); color: var(--primario-texto); border-color: var(--primario); font-weight: 600; }
+  button:disabled { opacity: .55; cursor: progress; }
+  .capas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+  @media (max-width: 560px) { .capas { grid-template-columns: 1fr; } }
+  .capa { border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .capa b { display: block; font-size: 13px; }
+  .capa span { color: var(--suave); }
+  .capa.ok { border-color: var(--ok); background: var(--ok-fondo); }
+  .capa.ok b::before { content: "✓ "; color: var(--ok); }
+  .capa.mal { border-color: var(--error); background: var(--error-fondo); }
+  .capa.mal b::before { content: "✗ "; color: var(--error); }
+  .capa.nada b::before { content: "○ "; color: var(--pendiente); }
+  .pestanas { display: flex; gap: 4px; border-bottom: 1px solid var(--borde); margin-bottom: 12px; flex-wrap: wrap; }
+  .pestanas button { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none;
+                     color: var(--suave); padding: 8px 12px; }
+  .pestanas button[aria-selected="true"] { color: var(--texto); border-bottom-color: var(--primario); font-weight: 600; }
+  .vacio { color: var(--suave); padding: 32px 8px; text-align: center; }
+  .aviso { border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+  .aviso.ok { background: var(--ok-fondo); color: var(--texto); border: 1px solid var(--ok); }
+  .aviso.mal { background: var(--error-fondo); color: var(--texto); border: 1px solid var(--error); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  th { color: var(--suave); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tabla { overflow-x: auto; margin-bottom: 14px; }
+  .datos { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; font-size: 14px; margin-bottom: 14px; }
+  .datos dt { color: var(--suave); }
+  .datos dd { margin: 0; overflow-wrap: anywhere; }
+  pre { margin: 0; background: var(--codigo); border: 1px solid var(--borde); border-radius: 8px; padding: 12px;
+        font: 12.5px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; overflow: auto; max-height: 620px;
+        white-space: pre; }
+  .xe { color: var(--x-etiqueta); } .xa { color: var(--x-atributo); } .xv { color: var(--x-valor); }
+  .xc { color: var(--x-comentario); }
+  code.regla { font-weight: 700; color: var(--error); white-space: nowrap; }
+  .historial { list-style: none; padding: 0; margin: 0; }
+  .historial li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--borde); font-size: 14px; }
+  .historial a { color: var(--primario); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Emisión de comprobantes · XML UBL 2.1</h1>
+  <p>Factura y boleta electrónica según SUNAT. El XML se genera con las clases derivadas de <code>UBL-Invoice-2.1.xsd</code>, se firma y se valida contra el XSD oficial.</p>
+</header>
+
+<main>
+  <section class="panel" aria-labelledby="t-solicitud">
+    <h2 id="t-solicitud">1. Solicitud</h2>
+    <label for="ejemplo">Ejemplo de <code>specs/ejemplos/json</code></label>
+    <select id="ejemplo">
+      <optgroup label="Válidos">
+        <option value="01-emitir-factura-credito.request.json">Factura a crédito con bonificación (F001)</option>
+        <option value="02-emitir-boleta-icbper.request.json">Boleta con ICBPER y exonerado (B001)</option>
+        <option value="03-emitir-factura-isc.request.json">Factura con ISC (Catálogo N.° 08)</option>
+      </optgroup>
+      <optgroup label="Fuera del alcance de la fase 2 (VAL-ALC-01)">
+        <option value="04-emitir-nota-credito.request.json">Nota de crédito</option>
+      </optgroup>
+      <optgroup label="Inválidos (muestran las validaciones)">
+        <option value="invalidos/i01-boleta-con-serie-de-factura.json">Boleta con serie de factura</option>
+        <option value="invalidos/i02-factura-a-cliente-con-dni.json">Factura a cliente con DNI</option>
+        <option value="invalidos/i03-gratuita-con-valor-unitario.json">Gratuita con valor unitario</option>
+        <option value="invalidos/i05-credito-sin-cuotas.json">Crédito sin cuotas</option>
+        <option value="invalidos/i06-isc-al-valor-sin-tasa.json">ISC al valor sin tasa</option>
+        <option value="invalidos/i07-moneda-extranjera-sin-tipo-cambio.json">Moneda extranjera sin tipo de cambio</option>
+      </optgroup>
+    </select>
+    <p class="ayuda">Puedes editar el JSON antes de enviarlo. El contrato es <code>comprobante-emision.request.schema.json</code>.</p>
+    <label for="cuerpo">Cuerpo (JSON)</label>
+    <textarea id="cuerpo" spellcheck="false" aria-describedby="t-solicitud"></textarea>
+    <div class="acciones">
+      <button class="primario" id="btn-emitir">Emitir y generar XML</button>
+      <button id="btn-calcular" title="Solo calcula los tributos y totales; no numera ni genera XML">Solo calcular</button>
+      <button id="btn-hoy" title="Cambia fechaEmision por la fecha de hoy">Usar fecha de hoy</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="t-resultado">
+    <h2 id="t-resultado">2. Resultado</h2>
+    <div class="capas" aria-label="Capas de validación">
+      <div class="capa nada" id="capa1"><b>Capa 1 · Contrato</b><span>JSON Schema 2020-12</span></div>
+      <div class="capa nada" id="capa2"><b>Capa 2 · Normas</b><span>Reglas VAL-* y motor tributario</span></div>
+      <div class="capa nada" id="capa3"><b>Capa 3 · Documento</b><span>XSD UBL 2.1, perfil SUNAT y firma</span></div>
+    </div>
+
+    <div id="estado"></div>
+
+    <div class="pestanas" role="tablist" id="pestanas" hidden>
+      <button role="tab" data-p="resumen" aria-selected="true">Resumen</button>
+      <button role="tab" data-p="xml" aria-selected="false" id="tab-xml">XML UBL 2.1</button>
+      <button role="tab" data-p="json" aria-selected="false">Respuesta JSON</button>
+    </div>
+    <div id="p-resumen" role="tabpanel"><p class="vacio">Elige un ejemplo y pulsa <b>Emitir y generar XML</b>.</p></div>
+    <div id="p-xml" role="tabpanel" hidden>
+      <div class="acciones" style="margin:0 0 10px">
+        <a class="boton" id="descargar" download>Descargar XML firmado</a>
+        <button id="copiar">Copiar</button>
+      </div>
+      <pre id="xml"></pre>
+    </div>
+    <div id="p-json" role="tabpanel" hidden><pre id="json"></pre></div>
+
+    <div id="bloque-historial" hidden>
+      <h2 style="margin-top:20px">Emitidos en esta sesión</h2>
+      <ul class="historial" id="historial"></ul>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const API = "/api/v1/comprobantes";
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const TIPOS = { "01": "Factura", "03": "Boleta de venta", "07": "Nota de crédito", "08": "Nota de débito" };
+  let xmlTexto = "";
+  // El nombre SUNAT (RUC-tipo-serie-número) viene sin extensión
+  const nombreXml = (n) => (n || "comprobante") + (/\.xml$/i.test(n || "") ? "" : ".xml");
+
+  // ---------- Solicitud ----------
+  async function cargarEjemplo() {
+    const r = await fetch("ejemplos/" + $("ejemplo").value);
+    $("cuerpo").value = r.ok ? JSON.stringify(await r.json(), null, 2)
+                             : "// No se encontró el ejemplo. Compila con: mvnw verify";
+  }
+
+  function leerCuerpo() {
+    try { return JSON.parse($("cuerpo").value); }
+    catch (e) { mostrarError(400, { title: "JSON mal formado", detail: e.message, errores: [] }, 1); return null; }
+  }
+
+  $("btn-hoy").addEventListener("click", () => {
+    const cuerpo = leerCuerpo(); if (!cuerpo) return;
+    const hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
+    cuerpo.fechaEmision = hoy.toISOString().slice(0, 10);
+    $("cuerpo").value = JSON.stringify(cuerpo, null, 2);
+  });
+
+  // ---------- Capas de validación ----------
+  function capas(estados) {
+    ["capa1", "capa2", "capa3"].forEach((id, i) => { $(id).className = "capa " + (estados[i] || "nada"); });
+  }
+  // 400 = capa 1 (contrato) · 422 = capa 2 (normas) · 500 = capa 3 (documento)
+  function capaQueFallo(status) { return status === 400 ? 1 : status === 422 ? 2 : status >= 500 ? 3 : 0; }
+
+  // ---------- Envío ----------
+  async function enviar(soloCalcular) {
+    const cuerpo = leerCuerpo(); if (!cuerpo) return;
+    [$("btn-emitir"), $("btn-calcular")].forEach((b) => (b.disabled = true));
+    $("estado").innerHTML = '<p class="vacio">Procesando…</p>';
+    try {
+      const r = await fetch(soloCalcular ? API + "/calculos" : API, {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/json" },
+                               soloCalcular ? {} : { "Idempotency-Key": crypto.randomUUID() }),
+        body: JSON.stringify(cuerpo),
+      });
+      const datos = await r.json().catch(() => ({}));
+      if (!r.ok) { mostrarError(r.status, datos, capaQueFallo(r.status)); return; }
+      if (soloCalcular) { mostrarCalculo(datos); return; }
+      await mostrarComprobante(datos);
+      agregarHistorial(datos);
+    } catch (e) {
+      mostrarError(0, { title: "No se pudo conectar con el servidor", detail: e.message, errores: [] }, 0);
+    } finally {
+      [$("btn-emitir"), $("btn-calcular")].forEach((b) => (b.disabled = false));
+    }
+  }
+
+  $("btn-emitir").addEventListener("click", () => enviar(false));
+  $("btn-calcular").addEventListener("click", () => enviar(true));
+  $("ejemplo").addEventListener("change", cargarEjemplo);
+
+  // ---------- Resultado ----------
+  function mostrarError(status, p, capa) {
+    capas([1, 2, 3].map((n) => (n < capa ? "ok" : n === capa ? "mal" : "nada")));
+    const filas = (p.errores || []).map((e) =>
+      `<tr><td><code class="regla">${esc(e.regla)}</code></td><td><code>${esc(e.campo)}</code></td><td>${esc(e.mensaje)}</td></tr>`).join("");
+    $("estado").innerHTML =
+      `<div class="aviso mal"><b>${status ? "HTTP " + status + " · " : ""}${esc(p.title || "Error")}</b><br>${esc(p.detail || "")}</div>` +
+      (filas ? `<div class="tabla"><table><thead><tr><th>Regla</th><th>Campo</th><th>Mensaje</th></tr></thead><tbody>${filas}</tbody></table></div>` : "");
+    $("pestanas").hidden = true;
+    ["p-resumen", "p-xml", "p-json"].forEach((id) => ($(id).hidden = true));
+    $("json").textContent = JSON.stringify(p, null, 2);
+  }
+
+  function tablaItems(items, moneda) {
+    const filas = (items || []).map((it, i) => `<tr>
+      <td>${esc(it.numeroOrden ?? i + 1)}</td><td>${esc(it.descripcion ?? it.codigoProducto ?? "")}</td>
+      <td class="num">${esc(it.cantidad ?? "")}</td><td>${esc(it.tipoAfectacionIgv ?? "")}</td>
+      <td class="num">${esc(it.valorVenta)}</td><td class="num">${esc(it.montoIgv)}</td>
+      <td class="num">${esc(it.totalTributos)}</td><td class="num">${esc(it.importeTotal)}</td></tr>`).join("");
+    return `<div class="tabla"><table><thead><tr><th>#</th><th>Descripción</th><th class="num">Cant.</th>
+      <th title="Catálogo N.° 07">Afect.</th><th class="num">Valor venta</th><th class="num">IGV</th>
+      <th class="num">Tributos</th><th class="num">Total ${esc(moneda || "")}</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+  }
+
+  function tablaTotales(t) {
+    const nombres = { operacionesGravadas: "Op. gravadas", operacionesExoneradas: "Op. exoneradas",
+      operacionesInafectas: "Op. inafectas", operacionesGratuitas: "Op. gratuitas", igv: "IGV", isc: "ISC",
+      icbper: "ICBPER", totalTributos: "Total tributos", totalValorVenta: "Total valor de venta",
+      totalPrecioVenta: "Total precio de venta", importeTotal: "Importe total" };
+    const filas = Object.entries(nombres).filter(([k]) => t && t[k] != null && (Number(t[k]) !== 0 || k === "importeTotal"))
+      .map(([k, n]) => `<tr><td>${n}</td><td class="num">${k === "importeTotal" ? "<b>" + esc(t[k]) + "</b>" : esc(t[k])}</td></tr>`).join("");
+    return `<div class="tabla"><table><tbody>${filas}</tbody></table></div>`;
+  }
+
+  function leyendas(ls) {
+    return (ls || []).length ? `<p class="ayuda">${ls.map((l) => `<b>${esc(l.codigo)}</b>: ${esc(l.texto)}`).join("<br>")}</p>` : "";
+  }
+
+  function mostrarCalculo(c) {
+    capas(["ok", "ok", "nada"]);
+    $("estado").innerHTML = '<div class="aviso ok"><b>Cálculo correcto.</b> No se numeró ni se generó XML; usa <b>Emitir</b> para eso.</div>';
+    activarPestanas(false);
+    $("p-resumen").innerHTML = tablaItems(c.items) + tablaTotales(c.totales) + leyendas(c.leyendas);
+    $("json").textContent = JSON.stringify(c, null, 2);
+  }
+
+  async function mostrarComprobante(c) {
+    capas(["ok", "ok", "ok"]);
+    const doc = c.documentoElectronico || {};
+    $("estado").innerHTML = `<div class="aviso ok"><b>${esc(TIPOS[c.tipoComprobante] || c.tipoComprobante)} ${esc(c.numero)} emitida.</b>
+      El XML firmado cumple <code>UBL-Invoice-2.1.xsd</code> y el perfil SUNAT.</div>`;
+    activarPestanas(true);
+    const cliente = c.cliente || {};
+    $("p-resumen").innerHTML = `<dl class="datos">
+        <dt>Emisor</dt><dd>${esc(c.emisor?.razonSocial)} · RUC ${esc(c.emisor?.ruc)}</dd>
+        <dt>Cliente</dt><dd>${esc(cliente.razonSocial || cliente.nombre || "—")} · ${esc(cliente.numeroDocumento || "")}</dd>
+        <dt>Emisión</dt><dd>${esc(c.fechaEmision)} ${esc(c.horaEmision || "")} · ${esc(c.moneda)}</dd>
+        <dt>Forma de pago</dt><dd>${esc(c.formaPago?.tipo || "CONTADO")}</dd>
+        <dt>Archivo</dt><dd><code>${esc(doc.nombreArchivo)}</code></dd>
+        <dt>Hash (DigestValue)</dt><dd><code>${esc(doc.hash)}</code></dd>
+      </dl>` + tablaItems(c.items, c.moneda) + tablaTotales(c.totales) + leyendas(c.leyendas);
+    $("json").textContent = JSON.stringify(c, null, 2);
+
+    const urlXml = c.enlaces?.xml || `${API}/${c.id}/xml`;
+    $("descargar").href = urlXml;
+    $("descargar").setAttribute("download", nombreXml(doc.nombreArchivo));
+    const r = await fetch(urlXml);
+    xmlTexto = await r.text();
+    $("xml").innerHTML = resaltarXml(xmlTexto);
+  }
+
+  function activarPestanas(conXml) {
+    $("pestanas").hidden = false;
+    $("tab-xml").hidden = !conXml;
+    elegirPestana("resumen");
+  }
+
+  function elegirPestana(p) {
+    document.querySelectorAll("#pestanas button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.p === p)));
+    ["resumen", "xml", "json"].forEach((x) => ($("p-" + x).hidden = x !== p));
+  }
+  $("pestanas").addEventListener("click", (e) => { if (e.target.dataset.p) elegirPestana(e.target.dataset.p); });
+
+  $("copiar").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(xmlTexto); $("copiar").textContent = "Copiado"; }
+    catch { $("copiar").textContent = "No se pudo copiar"; }
+    setTimeout(() => ($("copiar").textContent = "Copiar"), 1500);
+  });
+
+  // Solo para mostrar: añade sangría y colores. La descarga entrega el XML firmado tal cual (la firma no se altera).
+  function resaltarXml(xml) {
+    let nivel = 0;
+    const partes = xml.replace(/>\s*</g, "><").split(/(?=<)|(?<=>)/).filter((s) => s.trim());
+    return partes.map((s) => {
+      let linea = esc(s);
+      if (s.startsWith("<!--")) linea = `<span class="xc">${linea}</span>`;
+      else if (s.startsWith("<")) {
+        linea = linea.replace(/^(&lt;\/?[\w:.-]+)/, '<span class="xe">$1</span>')
+                     .replace(/([\w:.-]+)=(&quot;.*?&quot;)/g, '<span class="xa">$1</span>=<span class="xv">$2</span>')
+                     .replace(/(\/?&gt;)$/, '<span class="xe">$1</span>');
+      }
+      if (s.startsWith("</")) nivel = Math.max(0, nivel - 1);
+      const sangria = "  ".repeat(nivel);
+      if (s.startsWith("<") && !s.startsWith("</") && !s.startsWith("<?") && !s.startsWith("<!") && !s.endsWith("/>")) nivel++;
+      return s.startsWith("<") ? "\n" + sangria + linea : linea;
+    }).join("").trim()
+      // valor de texto en la misma línea que su etiqueta de apertura
+      .replace(/(<span class="xe">&gt;<\/span>)([^\n<]+)\n\s*(<span class="xe">&lt;\/)/g, "$1$2$3");
+  }
+
+  // ---------- Historial ----------
+  function agregarHistorial(c) {
+    $("bloque-historial").hidden = false;
+    const li = document.createElement("li");
+    li.innerHTML = `<span>${esc(TIPOS[c.tipoComprobante] || c.tipoComprobante)} <b>${esc(c.numero)}</b> · ${esc(c.moneda)} ${esc(c.totales?.importeTotal)}</span>
+      <a href="${esc(c.enlaces?.xml || API + "/" + c.id + "/xml")}" download="${esc(nombreXml(c.documentoElectronico?.nombreArchivo))}">XML</a>`;
+    $("historial").prepend(li);
+  }
+
+  cargarEjemplo();
+})();
+</script>
+</body>
+</html>

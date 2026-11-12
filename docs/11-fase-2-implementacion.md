@@ -55,6 +55,7 @@ Spec-First significa que lo que se descubre al programar **vuelve a la especific
 | A-03 | El contrato admite funcionalidades que esta fase no implementa. | Regla **VAL-ALC-01**: se rechazan explícitamente (422), nunca se ignoran. Abarca notas 07/08, operaciones ≠ 0101, detracción, cargos y descuentos, afectación 17 (IVAP) e ISC con precio con impuestos. |
 | A-04 | El orden de los `cac:TaxSubtotal` de cabecera no estaba escrito. | Se usa el orden de las referencias: 1000, 2000, 9995, 9996, 9997, 9998, 7152 (orden del enum `Tributo`). |
 | A-05 | Persistencia: la fase 1 especifica PostgreSQL. | La fase 2 usa adaptadores **en memoria** detrás de `NumeradorPort` y `ComprobanteRepository`. Cambiarlos por JPA no toca el dominio ni la aplicación. |
+| A-06 | Empaquetado como jar ejecutable (`java -jar`), el servidor no arrancaba: Spring Boot lee los XSD incluidos con el protocolo `nested:`, que el validador no permitía. Las pruebas no lo detectaban porque leen los XSD desde carpetas. | `ValidadorDocumentoAdapter` permite `file`, `jar` y `nested` (nunca `http`). El CI arranca el jar y emite una factura en cada push (prueba de humo). |
 
 ## 11.4 Reglas implementadas
 
@@ -69,7 +70,7 @@ a módulos o integraciones de fases posteriores (envío a OSE/SUNAT, notas, inve
 
 ## 11.5 Evidencia: pruebas
 
-`cd servidor && ./mvnw verify` → **124 pruebas, 0 fallas; cobertura de líneas 95,5 %** (mínimo exigido en el build: 90 %).
+`cd servidor && ./mvnw verify` → **129 pruebas, 0 fallas; cobertura de líneas 95,6 %** (mínimo exigido en el build: 90 %).
 
 | Prueba | N.° | Qué demuestra |
 |---|---:|---|
@@ -79,7 +80,7 @@ a módulos o integraciones de fases posteriores (envío a OSE/SUNAT, notas, inve
 | `MotorTributarioTest` | 19 | Tabla 4.5, TC-07 y TC-09, ISC de los sistemas 01, 02 y 03, precio con IGV, gratuitas, redondeo HALF_UP por ítem y tasa como parámetro. |
 | `ValidadorNormativoTest` | 24 | TC-02, 03, 04, 05, 06, 08 y 10, y las reglas de la capa 2. Todas las violaciones se informan juntas. |
 | `MontoEnLetrasTest` | 23 | Leyenda 1000, incluidas las tres de los ejemplos. |
-| `ComprobanteApiTest` | 17 | TC-01 y TC-12 (idempotencia); los 7 contraejemplos `invalidos/i01..i07` → 400 en el campo esperado; TC-03 y TC-04 → 422; VAL-ALC-01; **la respuesta cumple `comprobante.response.schema.json`**; consulta y descarga del XML firmado. |
+| `ComprobanteApiTest` | 22 | TC-01 y TC-12 (idempotencia); los 7 contraejemplos `invalidos/i01..i07` → 400 en el campo esperado; TC-03 y TC-04 → 422; VAL-ALC-01; **la respuesta cumple `comprobante.response.schema.json`**; consulta y descarga del XML firmado; la vista web y sus ejemplos se sirven. |
 | `ReglasDeArquitecturaTest` | 5 | Reglas de dependencia del § 6.5 y módulos sin ciclos. |
 
 **Mutaciones manuales.** Si el IGV se calcula sin el ISC en la base (se viola VAL-TRB-05), fallan 6 pruebas de tres
@@ -97,6 +98,20 @@ curl -X POST http://localhost:8080/api/v1/comprobantes \
      -d @../specs/ejemplos/json/01-emitir-factura-credito.request.json
 curl http://localhost:8080/api/v1/comprobantes/{id}/xml -o factura.xml
 ```
+
+### Vista web
+
+Con el servidor en marcha, **<http://localhost:8080/>** abre una página para generar los XML sin usar `curl`:
+
+1. Se elige un ejemplo de `specs/ejemplos/json` (válidos, fuera de alcance o inválidos) y se puede editar el JSON.
+2. **Emitir y generar XML** llama a `POST /api/v1/comprobantes`. La página muestra el estado de las tres capas de
+   validación (contrato, normas y documento), el resumen con ítems, totales y leyendas, y el **XML UBL 2.1 firmado**,
+   que se puede descargar con su nombre SUNAT (`RUC-tipo-serie-número.xml`).
+3. Si la solicitud incumple una norma, la página lista cada regla `VAL-*` que falló, con el campo y el mensaje.
+
+La vista es un **cliente más de la API** (`src/main/resources/static/index.html`): no tiene lógica de negocio ni
+copia de los ejemplos, que el build empaqueta desde `specs/`. Todo el cálculo, la generación desde el XSD, la firma
+y las validaciones ocurren en el servidor.
 
 Sin configuración, la firma usa un **certificado de prueba autofirmado** que se genera al iniciar. No es válido
 ante SUNAT. Para un certificado real: `ABC_CERTIFICADO_PFX`, `ABC_CERTIFICADO_CLAVE` y `ABC_CERTIFICADO_ALIAS`.

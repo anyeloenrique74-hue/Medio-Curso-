@@ -22,12 +22,14 @@ El detalle completo está en [docs/11-fase-2-implementacion.md](docs/11-fase-2-i
   adaptadores (JAXB, XMLDSig, memoria). Las reglas ArchUnit del § 6.5 se ejecutan en cada build.
 - **Regresión RNF-03.** Las solicitudes de `specs/ejemplos/json` producen los mismos documentos de `specs/ubl`.
   El **`DigestValue` de la firma es idéntico** al de los ejemplos firmados de la fase 1.
-- **124 pruebas unitarias y de API**, con cobertura de líneas del 95,5 % (el build falla si baja del 90 %).
+- **Vista web** en <http://localhost:8080/>: se elige o edita una solicitud, se emite y se ve o descarga el XML UBL 2.1
+  firmado, con el resultado de cada capa de validación y las reglas `VAL-*` que fallen.
+- **129 pruebas unitarias y de API**, con cobertura de líneas del 95,6 % (el build falla si baja del 90 %).
 
 ```bash
 cd servidor
 ./mvnw verify            # Windows: mvnw.cmd verify. Solo requiere JDK 21
-./mvnw spring-boot:run   # http://localhost:8080/api/v1/comprobantes
+./mvnw spring-boot:run   # vista: http://localhost:8080/  ·  API: http://localhost:8080/api/v1/comprobantes
 ```
 
 ## Resumen ejecutivo de la fase 1 (especificación)
@@ -64,7 +66,8 @@ docs/                         10 capítulos de la especificación + 11 (implemen
 servidor/                     FASE 2: servidor Java 21 + Spring Boot 3 (emisión, motor tributario, UBL, firma)
   src/main/java/pe/abc/comercial/facturacion/   web · aplicacion (puertos) · dominio · infraestructura
   src/main/java/pe/abc/comercial/cpe/           api · aplicacion · infraestructura/{ubl, firma}
-  src/test/java/                                124 pruebas (regresión specs/ubl, generación, reglas, API, ArchUnit)
+  src/main/resources/static/                    vista web (index.html): cliente de la API para generar y ver los XML
+  src/test/java/                                129 pruebas (regresión specs/ubl, generación, reglas, API, ArchUnit)
 specs/
   schemas/                    contratos de datos: JSON Schema 2020-12 (11 archivos)
   openapi/                    contrato REST: OpenAPI 3.1 (43 rutas, 50 operaciones)

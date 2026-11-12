@@ -90,6 +90,15 @@
                 <directory>${specs.dir}/schemas</directory>
                 <targetPath>schemas</targetPath>
             </resource>
+            <!-- Vista web (src/main/resources/static): las solicitudes de ejemplo de la fase 1, sin copiarlas -->
+            <resource>
+                <directory>${specs.dir}/ejemplos/json</directory>
+                <targetPath>static/ejemplos</targetPath>
+                <includes>
+                    <include>*.request.json</include>
+                    <include>invalidos/*.json</include>
+                </includes>
+            </resource>
         </resources>
 
         <plugins>

@@ -22,6 +22,16 @@ jobs:
       - name: Generar clases desde el XSD, compilar, pruebas, reglas de arquitectura y cobertura
         run: ./mvnw -B verify
 
+      # Las pruebas leen los XSD desde carpetas; el jar ejecutable, desde dentro del jar (protocolo nested:).
+      - name: Prueba de humo del jar ejecutable (vista web + emisión)
+        run: |
+          java -jar target/abc-comercial-servidor-*.jar &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8080/ && break; sleep 1; done
+          curl -sf -o /dev/null http://localhost:8080/
+          curl -sf -o /dev/null -X POST http://localhost:8080/api/v1/comprobantes \
+            -H 'Content-Type: application/json' -H 'Idempotency-Key: humo-1' \
+            --data @../specs/ejemplos/json/01-emitir-factura-credito.request.json
+
       - name: Publicar reporte de cobertura
         if: always()
         uses: actions/upload-artifact@v4
