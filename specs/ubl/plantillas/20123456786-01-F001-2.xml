@@ -1,11 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Ejemplo normativo (datos ficticios): factura con ISC - Catálogo N.° 08, sistema 01 (al valor).
-  Escenario SUP-03: ABC importa la bebida, por lo que es sujeto del ISC en su venta en el país.
-  La tasa de 25 % es ilustrativa; en producción proviene de la parametrización vigente (TasaIsc).
-  Línea 1: valor 48.00 | ISC 48.00 x 25 % = 12.00 | base IGV 48.00 + 12.00 = 60.00 | IGV 10.80
-  Origen: specs/ejemplos/json/03-emitir-factura-isc.request.json
--->
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
          xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
@@ -70,7 +63,7 @@
   <cac:AccountingCustomerParty>
     <cac:Party>
       <cac:PartyIdentification>
-        <cbc:ID schemeID="6" schemeName="Documento de Identidad" schemeAgencyName="PE:SUNAT" schemeURI="urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo06">20456789120</cbc:ID>
+        <cbc:ID schemeID="6" schemeName="Documento de Identidad" schemeAgencyName="PE:SUNAT" schemeURI="urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo06">20131312955</cbc:ID>
       </cac:PartyIdentification>
       <cac:PartyLegalEntity>
         <cbc:RegistrationName>DISTRIBUIDORA SANTA ROSA DEL HUALLAGA E.I.R.L.</cbc:RegistrationName>

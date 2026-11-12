@@ -22,7 +22,7 @@ final class Fabrica {
     static final LocalDate HOY = LocalDate.of(2026, 10, 22);
     static final ParametrosTributarios PARAMETROS = new ParametrosTributarios(new BigDecimal("0.18"),
             new BigDecimal("0.50"), new BigDecimal("0.847"), new BigDecimal("700.00"));
-    static final Adquirente EMPRESA = new Adquirente(new DocumentoIdentidad("6", "20456789120"),
+    static final Adquirente EMPRESA = new Adquirente(new DocumentoIdentidad("6", "20131312955"),
             "DISTRIBUIDORA SANTA ROSA DEL HUALLAGA E.I.R.L.", "JR. HUALLAGA 456, TINGO MARIA", "100601");
     static final Adquirente CLIENTES_VARIOS = new Adquirente(new DocumentoIdentidad("0", "00000000"),
             "CLIENTES VARIOS", null, null);

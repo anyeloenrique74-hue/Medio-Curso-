@@ -56,6 +56,8 @@ Spec-First significa que lo que se descubre al programar **vuelve a la especific
 | A-04 | El orden de los `cac:TaxSubtotal` de cabecera no estaba escrito. | Se usa el orden de las referencias: 1000, 2000, 9995, 9996, 9997, 9998, 7152 (orden del enum `Tributo`). |
 | A-05 | Persistencia: la fase 1 especifica PostgreSQL. | La fase 2 usa adaptadores **en memoria** detrás de `NumeradorPort` y `ComprobanteRepository`. Cambiarlos por JPA no toca el dominio ni la aplicación. |
 | A-06 | Empaquetado como jar ejecutable (`java -jar`), el servidor no arrancaba: Spring Boot lee los XSD incluidos con el protocolo `nested:`, que el validador no permitía. Las pruebas no lo detectaban porque leen los XSD desde carpetas. | `ValidadorDocumentoAdapter` permite `file`, `jar` y `nested` (nunca `http`). El CI arranca el jar y emite una factura en cada push (prueba de humo). |
+| A-07 | `probar-xml.nubefact.com` no procesaba los ejemplos de `specs/ubl`: respondía `Extra illegal tokens: '#comment'` porque cada archivo empezaba con un comentario antes del elemento raíz. | Los XML no llevan comentarios antes de la raíz; la descripción de cada ejemplo pasó a `specs/ubl/README.md`. La firma no cambia: se calcula con canonicalización sin comentarios (B001-1 conserva su `DigestValue`). |
+| A-08 | El OSE rechazó una factura con el error 1083 ("el número de RUC del receptor no existe"): el RUC ficticio del cliente tenía dígito verificador válido, pero no está en el padrón. Es la regla VAL-ID-04, que esta fase no implementa porque requiere consultar el padrón. | Los ejemplos usan como adquirente el RUC público de SUNAT (`20131312955`); su razón social y su dirección siguen siendo ficticias. Se re-firmaron los ejemplos y se actualizó el hash de la respuesta de ejemplo. |
 
 ## 11.4 Reglas implementadas
 
@@ -130,7 +132,29 @@ desde el XSD, la firma y todas las validaciones ocurren en el servidor.
 Sin configuración, la firma usa un **certificado de prueba autofirmado** que se genera al iniciar. No es válido
 ante SUNAT. Para un certificado real: `ABC_CERTIFICADO_PFX`, `ABC_CERTIFICADO_CLAVE` y `ABC_CERTIFICADO_ALIAS`.
 
-## 11.7 Pendiente para las fases siguientes
+## 11.7 Prueba en el OSE-DEMO de Nubefact
+
+Para comprobar el XML contra las reglas reales de un **OSE autorizado por SUNAT**, se envió una factura generada por
+la vista web al OSE-DEMO de Nubefact (<https://probar-xml.nubefact.com/>), **sin volver a firmarla**: con la firma
+del propio servidor y su certificado de prueba.
+
+**Resultado: aceptada.** El CDR responde `ResponseCode 0`, "La Factura Electrónica F7Q5-1 ha sido ACEPTADA", y su
+`DocumentHash` es el `DigestValue` que calculó el servidor (`eBujL89g…`). El XML enviado y el CDR están en
+[`specs/ubl/ose-demo/`](../specs/ubl/ose-demo/); las dos firmas se verifican.
+
+| Intento | Respuesta del OSE | Causa | Solución |
+|---|---|---|---|
+| Ejemplo `F001-1` de `specs/ubl` | `Extra illegal tokens: '#comment'…` | Comentario antes de `<Invoice>` | A-07 |
+| Ejemplo `F001-2` sin el comentario | **1033**: "registrado previamente con otros datos" | El OSE-DEMO es compartido y ese número ya existía para el RUC emisor | Usar una serie o un número no enviados antes |
+| Factura de la vista con RUC ficticio del cliente | **1083**: "el número de RUC del receptor no existe" | VAL-ID-04 (padrón), pendiente en esta fase | A-08: RUC del receptor que existe en el padrón |
+| Factura de la vista `F7Q5-1` | **0: ACEPTADA** | — | — |
+
+Ningún rechazo se debió a la estructura UBL, a los cálculos ni a la firma. Los dos errores del OSE (1033 y 1083)
+corresponden a validaciones contra el registro de SUNAT, que el servidor no puede hacer sin conectarse a él.
+En producción, el número no se repite porque solo ABC emite con su RUC, y el RUC del cliente se valida contra el
+padrón (VAL-ID-04).
+
+## 11.8 Pendiente para las fases siguientes
 
 Envío a OSE/SUNAT con outbox y CDR (ADR-05/06), notas de crédito y débito (con `UBL-CreditNote/DebitNote-2.1.xsd`),
 persistencia en PostgreSQL, numeración con `UPDATE … RETURNING`, seguridad JWT, el resto de endpoints del OpenAPI

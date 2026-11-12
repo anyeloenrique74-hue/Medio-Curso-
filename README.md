@@ -7,7 +7,9 @@
 
 Especificaciones técnicas, y su implementación en Java, para modernizar el software de ABC Software Corp, una mediana empresa mayorista y minorista de abarrotes, y llevarlo a la **facturación electrónica SUNAT en UBL 2.1** con **inventario formal**, **migración trazable del legado** y una **arquitectura MVC preparada para hexagonal y microservicios**, con distribución nativa en **Windows (MSI)** y **Android (APK)**.
 
-> Todos los datos de este repositorio (RUC, razones sociales, direcciones) son **ficticios**. Los XML están firmados con un **certificado de prueba autofirmado**, no válido ante SUNAT.
+> Los datos de este repositorio (RUC del emisor, razones sociales, direcciones) son **ficticios**. Como adquirente de las facturas se usa el RUC público de SUNAT, solo porque los OSE verifican que el RUC del receptor exista (ver [specs/ubl/README.md](specs/ubl/README.md)). Los XML están firmados con un **certificado de prueba autofirmado**, sin validez legal.
+>
+> **Prueba en un OSE real (modo DEMO):** una factura generada por el servidor fue **aceptada** por el OSE-DEMO de Nubefact con la firma del propio servidor. El XML y el CDR están en [specs/ubl/ose-demo/](specs/ubl/ose-demo/) y el detalle en [docs/11 § 11.7](docs/11-fase-2-implementacion.md).
 
 ## Fase 2 (segundo parcial): generación del XML a partir de `UBL-Invoice-2.1.xsd`
 

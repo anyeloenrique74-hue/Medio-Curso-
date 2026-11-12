@@ -228,7 +228,7 @@ class ValidadorNormativoTest {
     @Test
     void rucValidoConDigitoVerificador() {
         assertThat(Ruc.esValido("20123456786")).isTrue();
-        assertThat(Ruc.esValido("20456789120")).isTrue();
+        assertThat(Ruc.esValido("20131312955")).isTrue();
         assertThat(Ruc.esValido("20123456789")).isFalse();     // TC-03
         assertThat(Ruc.esValido("30123456786")).isFalse();     // VAL-ID-01: prefijo
         assertThat(Ruc.esValido(null)).isFalse();

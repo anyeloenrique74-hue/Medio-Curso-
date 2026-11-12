@@ -1,11 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Ejemplo normativo (datos ficticios): boleta minorista con producto exonerado y bolsas con ICBPER.
-  Total S/ 33.90 <= S/ 700: el adquirente puede no identificarse (VAL-BOL-01, SUP-08).
-  Cálculo desde precio con IGV (VAL-TRB-02): 6 x 4.20 = 25.20 -> valor 21.36 + IGV 3.84
-  ICBPER: 2 bolsas x S/ 0.50 = 1.00 (no forma parte de la base del IGV)
-  Origen: specs/ejemplos/json/02-emitir-boleta-icbper.request.json
--->
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
          xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"

@@ -19,7 +19,7 @@
   },
   "cliente": {
     "tipoDocumento": "6",
-    "numeroDocumento": "20456789120",
+    "numeroDocumento": "20131312955",
     "razonSocial": "DISTRIBUIDORA SANTA ROSA DEL HUALLAGA E.I.R.L.",
     "direccion": "JR. HUALLAGA 456, TINGO MARIA",
     "ubigeo": "100601",
@@ -130,9 +130,9 @@
   "estado": "ACEPTADO",
   "documentoElectronico": {
     "nombreArchivo": "20123456786-01-F001-1",
-    "hash": "nnO1MeSf+lhvhOvzi7ngbw2tFn6qov49IWYHPwmfAsE=",
+    "hash": "uP5a/J1X3rEx5LSAnA29s4yrULUu0/0vgdNLFCyzWMk=",
     "algoritmoFirma": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
-    "codigoQr": "20123456786|01|F001|1|406.98|2667.98|2026-10-22|6|20456789120|nnO1MeSf+lhvhOvzi7ngbw2tFn6qov49IWYHPwmfAsE=|"
+    "codigoQr": "20123456786|01|F001|1|406.98|2667.98|2026-10-22|6|20131312955|uP5a/J1X3rEx5LSAnA29s4yrULUu0/0vgdNLFCyzWMk=|"
   },
   "respuestaSunat": {
     "canal": "OSE",
